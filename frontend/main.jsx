@@ -368,6 +368,8 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('DROP EVENT FIRED!', dropIndex);
+    
     if (!draggedComponent) {
       return;
     }
