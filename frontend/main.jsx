@@ -416,6 +416,7 @@ function App() {
   };
 
   const handleDragEnd = (e) => {
+    console.log('DRAG END triggered');
     setDraggedComponent(null);
     setDragOverIndex(null);
     e.stopPropagation();
@@ -1087,6 +1088,8 @@ function App() {
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {
                             console.log('DROP on body component:', index);
+                            e.preventDefault();
+                            e.stopPropagation();
                             handleDrop(e, index);
                           }}
                           onDragEnd={handleDragEnd}
