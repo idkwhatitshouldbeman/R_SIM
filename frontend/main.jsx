@@ -1095,6 +1095,7 @@ function App() {
                           onDragOver={(e) => {
                             console.log('🎯 DRAG OVER on body component:', index);
                             e.preventDefault(); // This is crucial for drop zones to work!
+                            e.dataTransfer.dropEffect = 'copy'; // Explicitly set drop effect
                             handleDragOver(e, index);
                           }}
                           onDragLeave={handleDragLeave}
@@ -1103,6 +1104,7 @@ function App() {
                             e.preventDefault();
                             e.stopPropagation();
                             console.log('✅ Drop event working! About to call handleDrop');
+                            console.log('🎯 SUCCESS: Drop event fired! Component:', component.name, 'Index:', index);
                             handleDrop(e, index);
                           }}
                           onDragEnter={(e) => {
