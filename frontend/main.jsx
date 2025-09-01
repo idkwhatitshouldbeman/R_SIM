@@ -1105,6 +1105,7 @@ function App() {
                             e.stopPropagation();
                             console.log('✅ Drop event working! About to call handleDrop');
                             console.log('🎯 SUCCESS: Drop event fired! Component:', component.name, 'Index:', index);
+                            alert('🎯 DROP EVENT WORKING! Component: ' + component.name + ' Index: ' + index);
                             handleDrop(e, index);
                           }}
                           onDragEnter={(e) => {
