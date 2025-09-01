@@ -1090,6 +1090,7 @@ function App() {
                             console.log('DROP on body component:', index);
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('About to call handleDrop');
                             handleDrop(e, index);
                           }}
                           onDragEnd={handleDragEnd}

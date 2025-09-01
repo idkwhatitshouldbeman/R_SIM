@@ -406,6 +406,21 @@ body {
   z-index: 10;
 }
 
+/* Make sure drop zones accept drops */
+.tree-item {
+  -webkit-user-drag: element;
+  -khtml-user-drag: element;
+  -moz-user-drag: element;
+  -o-user-drag: element;
+  user-drag: element;
+}
+
+/* Ensure drop zones are visible during drag */
+.tree-item.dragover {
+  background-color: rgba(34, 197, 94, 0.3) !important;
+  border: 2px dashed #22c55e !important;
+}
+
 .tree-item {
   cursor: grab;
 }
