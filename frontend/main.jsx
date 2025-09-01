@@ -64,8 +64,6 @@ function App() {
   const [simulationStatus, setSimulationStatus] = useState(null);
 
   const addComponent = (type) => {
-    console.log('Adding component:', type); // Debug log
-    
     // Find the last body tube to attach fins and rail buttons to
     let attachedToComponent = null;
     if (type === 'Fins' || type === 'Rail Button') {
@@ -105,7 +103,6 @@ function App() {
       railButtonOffset: type === 'Rail Button' ? 2 : null,
       attachedToComponent: attachedToComponent
     };
-    console.log('New component:', newComponent); // Debug log
     setRocketComponents([...rocketComponents, newComponent]);
   };
 
@@ -130,7 +127,6 @@ function App() {
         // Check if the attached component still exists
         const attachedExists = components.some(c => c.id === comp.attachedToComponent);
         if (!attachedExists) {
-          console.log(`Removing orphaned ${comp.type.toLowerCase()} ${comp.name} - attached component no longer exists`);
           return false; // Remove this component
         }
       }
@@ -348,8 +344,6 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Drag over index:', index, 'draggedComponent:', draggedComponent?.name);
-    
     // Get the body components to find the correct index
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -358,17 +352,14 @@ function App() {
     
     if ((draggedComponent?.type === 'Fins' || draggedComponent?.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
-      console.log('Setting copy effect for attachment connection');
     } else {
       e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
-      console.log('Setting move effect for reordering');
     }
     
     setDragOverIndex(index);
   };
 
   const handleDragLeave = (e) => {
-    console.log('Drag leave');
     setDragOverIndex(null);
     e.stopPropagation();
   };
@@ -377,16 +368,12 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Drop on index:', dropIndex, 'draggedComponent:', draggedComponent?.name);
-    
     if (!draggedComponent) {
-      console.log('No dragged component');
       return;
     }
 
     const dragIndex = rocketComponents.findIndex(comp => comp.id === draggedComponent.id);
     if (dragIndex === -1) {
-      console.log('Drag index not found');
       return;
     }
 
@@ -396,11 +383,8 @@ function App() {
     );
     const dropTarget = bodyComponents[dropIndex];
     
-    console.log('Drop target:', dropTarget?.name, dropTarget?.type);
-    
     if ((draggedComponent.type === 'Fins' || draggedComponent.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the attachment to the body tube
-      console.log('Connecting attachment to body tube');
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
@@ -408,19 +392,16 @@ function App() {
           attachedToComponent: dropTarget.id
         };
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log('Attachment connected successfully');
       } catch (error) {
         console.error('Error connecting attachment:', error);
       }
     } else {
       // Regular reordering
-      console.log('Reordering components');
       try {
         const newComponents = [...rocketComponents];
         const [removed] = newComponents.splice(dragIndex, 1);
         newComponents.splice(dropIndex, 0, removed);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log('Components reordered successfully');
       } catch (error) {
         console.error('Error reordering components:', error);
       }
@@ -431,7 +412,6 @@ function App() {
   };
 
   const handleDragEnd = (e) => {
-    console.log('Drag end');
     setDraggedComponent(null);
     setDragOverIndex(null);
     e.stopPropagation();
