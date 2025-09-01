@@ -1072,14 +1072,18 @@ function App() {
                           className={`tree-item ${selectedComponent?.id === component.id ? 'selected' : ''} ${draggedComponent?.id === component.id ? 'dragging' : ''} ${dragOverIndex === index ? (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'dragover connectable' : 'dragover') : ''}`}
                           style={{ 
                             cursor: draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'copy' : 'grab',
-                            backgroundColor: dragOverIndex === index && draggedComponent?.type === 'Fins' ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+                            backgroundColor: dragOverIndex === index && draggedComponent?.type === 'Fins' ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
+                            border: '2px solid transparent'
                           }}
                           onClick={() => setSelectedComponent(component)}
                           onMouseEnter={() => setHoveredComponent(component.id)}
                           onMouseLeave={() => setHoveredComponent(null)}
                           draggable
                           onDragStart={(e) => handleDragStart(e, component)}
-                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragOver={(e) => {
+                            console.log('DRAG OVER body component:', index);
+                            handleDragOver(e, index);
+                          }}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {
                             console.log('DROP on body component:', index);
