@@ -364,6 +364,7 @@ function App() {
   };
 
   const handleDragLeave = (e) => {
+    console.log('Drag leave event triggered');
     setDragOverIndex(null);
     e.stopPropagation();
   };
@@ -1124,7 +1125,10 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, fin)}
-                            onDragEnd={handleDragEnd}
+                            onDragEnd={(e) => {
+                              console.log('Fin drag end triggered');
+                              handleDragEnd(e);
+                            }}
                           >
                             <span className="tree-arrow">  →</span>
                             <span className="tree-label">{fin.name}</span>
@@ -1153,7 +1157,10 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, railButton)}
-                            onDragEnd={handleDragEnd}
+                            onDragEnd={(e) => {
+                              console.log('Rail button drag end triggered');
+                              handleDragEnd(e);
+                            }}
                           >
                             <span className="tree-arrow">  →</span>
                             <span className="tree-label">{railButton.name}</span>
