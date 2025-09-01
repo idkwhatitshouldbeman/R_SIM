@@ -344,8 +344,6 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('DRAG OVER:', index);
-    
     // Get the body components to find the correct index
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -1081,13 +1079,10 @@ function App() {
                           onMouseLeave={() => setHoveredComponent(null)}
                           draggable
                           onDragStart={(e) => handleDragStart(e, component)}
-                          onDragOver={(e) => {
-                            console.log('Body component drag over:', index);
-                            handleDragOver(e, index);
-                          }}
+                          onDragOver={(e) => handleDragOver(e, index)}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {
-                            console.log('Body component drop:', index);
+                            console.log('DROP on body component:', index);
                             handleDrop(e, index);
                           }}
                           onDragEnd={handleDragEnd}
