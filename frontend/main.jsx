@@ -352,8 +352,10 @@ function App() {
     
     if ((draggedComponent?.type === 'Fins' || draggedComponent?.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
+      console.log(`Ready to drop ${draggedComponent?.name} onto ${dropTarget?.name} (index ${index})`);
     } else {
       e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
+      console.log(`Ready to reorder ${draggedComponent?.name} to position ${index}`);
     }
     
     setDragOverIndex(index);
@@ -369,13 +371,16 @@ function App() {
     e.stopPropagation();
     
     console.log('DROP EVENT FIRED!', dropIndex);
+    console.log('Attempting to drop:', draggedComponent?.name, 'onto index:', dropIndex);
     
     if (!draggedComponent) {
+      console.log('No dragged component found');
       return;
     }
 
     const dragIndex = rocketComponents.findIndex(comp => comp.id === draggedComponent.id);
     if (dragIndex === -1) {
+      console.log('Could not find dragged component in rocketComponents');
       return;
     }
 
@@ -385,8 +390,11 @@ function App() {
     );
     const dropTarget = bodyComponents[dropIndex];
     
+    console.log('Drop target found:', dropTarget?.name, 'Type:', dropTarget?.type);
+    
     if ((draggedComponent.type === 'Fins' || draggedComponent.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the attachment to the body tube
+      console.log(`Attempting to attach ${draggedComponent.name} to ${dropTarget.name}`);
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
@@ -394,18 +402,19 @@ function App() {
           attachedToComponent: dropTarget.id
         };
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log(`${draggedComponent.name} moved to ${dropTarget.name}`);
+        console.log(`SUCCESS: ${draggedComponent.name} moved to ${dropTarget.name}`);
       } catch (error) {
         console.error('Error connecting attachment:', error);
       }
     } else {
       // Regular reordering
+      console.log(`Attempting to reorder ${draggedComponent.name} to position ${dropIndex}`);
       try {
         const newComponents = [...rocketComponents];
         const [removed] = newComponents.splice(dragIndex, 1);
         newComponents.splice(dropIndex, 0, removed);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log(`${draggedComponent.name} reordered to position ${dropIndex}`);
+        console.log(`SUCCESS: ${draggedComponent.name} reordered to position ${dropIndex}`);
       } catch (error) {
         console.error('Error reordering components:', error);
       }
