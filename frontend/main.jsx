@@ -426,6 +426,7 @@ function App() {
   };
 
   const handleDragEnd = (e) => {
+    console.log('Drag end event triggered');
     setDraggedComponent(null);
     setDragOverIndex(null);
     e.stopPropagation();
@@ -1080,7 +1081,10 @@ function App() {
                       <div key={component.id}>
                         <div 
                           className={`tree-item ${selectedComponent?.id === component.id ? 'selected' : ''} ${draggedComponent?.id === component.id ? 'dragging' : ''} ${dragOverIndex === index ? (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'dragover connectable' : 'dragover') : ''}`}
-                          style={{ cursor: draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'copy' : 'grab' }}
+                          style={{ 
+                            cursor: draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'copy' : 'grab',
+                            backgroundColor: dragOverIndex === index && draggedComponent?.type === 'Fins' ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+                          }}
                           onClick={() => setSelectedComponent(component)}
                           onMouseEnter={() => setHoveredComponent(component.id)}
                           onMouseLeave={() => setHoveredComponent(null)}
@@ -1088,7 +1092,10 @@ function App() {
                           onDragStart={(e) => handleDragStart(e, component)}
                           onDragOver={(e) => handleDragOver(e, index)}
                           onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, index)}
+                          onDrop={(e) => {
+                            console.log('onDrop triggered on body component:', index);
+                            handleDrop(e, index);
+                          }}
                           onDragEnd={handleDragEnd}
                         >
                           <span className="tree-arrow">→</span>
