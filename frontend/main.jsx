@@ -1093,6 +1093,8 @@ function App() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, component)}
                           onDragOver={(e) => {
+                            console.log('🎯 DRAG OVER on body component:', index);
+                            e.preventDefault(); // This is crucial for drop zones to work!
                             handleDragOver(e, index);
                           }}
                           onDragLeave={handleDragLeave}
