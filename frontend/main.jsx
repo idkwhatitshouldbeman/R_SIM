@@ -1083,7 +1083,8 @@ function App() {
                           style={{ 
                             cursor: draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'copy' : 'grab',
                             backgroundColor: dragOverIndex === index && draggedComponent?.type === 'Fins' ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
-                            border: '2px solid transparent'
+                            border: '2px solid transparent',
+                            position: 'relative'
                           }}
                           onClick={() => setSelectedComponent(component)}
                           onMouseEnter={() => setHoveredComponent(component.id)}
@@ -1091,15 +1092,13 @@ function App() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, component)}
                           onDragOver={(e) => {
-                            console.log('DRAG OVER body component:', index);
                             handleDragOver(e, index);
                           }}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {
-                            console.log('DROP on body component:', index);
+                            console.log('🎯 DROP EVENT TRIGGERED on body component:', index);
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('About to call handleDrop');
                             handleDrop(e, index);
                           }}
                           onDragEnd={handleDragEnd}
