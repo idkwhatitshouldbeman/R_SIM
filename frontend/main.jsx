@@ -332,7 +332,7 @@ function App() {
 
   // Drag and drop handlers
   const handleDragStart = (e, component) => {
-    console.log('Drag start:', component.name, component.type, component.id);
+    console.log('Drag started:', component.name);
     setDraggedComponent(component);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', component.id);
@@ -344,8 +344,6 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Drag over:', { index, draggedComponent: draggedComponent?.name, draggedType: draggedComponent?.type });
-    
     // Get the body components to find the correct index
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -354,17 +352,14 @@ function App() {
     
     if ((draggedComponent?.type === 'Fins' || draggedComponent?.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
-      console.log('Setting copy effect for attachment');
     } else {
       e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
-      console.log('Setting move effect for reordering');
     }
     
     setDragOverIndex(index);
   };
 
   const handleDragLeave = (e) => {
-    console.log('Drag leave event triggered');
     setDragOverIndex(null);
     e.stopPropagation();
   };
@@ -373,16 +368,12 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Drop event triggered:', { dropIndex, draggedComponent: draggedComponent?.name, draggedType: draggedComponent?.type });
-    
     if (!draggedComponent) {
-      console.log('No dragged component');
       return;
     }
 
     const dragIndex = rocketComponents.findIndex(comp => comp.id === draggedComponent.id);
     if (dragIndex === -1) {
-      console.log('Drag index not found');
       return;
     }
 
@@ -392,11 +383,8 @@ function App() {
     );
     const dropTarget = bodyComponents[dropIndex];
     
-    console.log('Drop target:', { name: dropTarget?.name, type: dropTarget?.type, index: dropIndex });
-    
     if ((draggedComponent.type === 'Fins' || draggedComponent.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the attachment to the body tube
-      console.log('Connecting attachment to body tube');
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
@@ -404,19 +392,18 @@ function App() {
           attachedToComponent: dropTarget.id
         };
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log('Attachment successful!');
+        console.log(`${draggedComponent.name} moved to ${dropTarget.name}`);
       } catch (error) {
         console.error('Error connecting attachment:', error);
       }
     } else {
       // Regular reordering
-      console.log('Regular reordering');
       try {
         const newComponents = [...rocketComponents];
         const [removed] = newComponents.splice(dragIndex, 1);
         newComponents.splice(dropIndex, 0, removed);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log('Reordering successful!');
+        console.log(`${draggedComponent.name} reordered to position ${dropIndex}`);
       } catch (error) {
         console.error('Error reordering components:', error);
       }
@@ -427,7 +414,6 @@ function App() {
   };
 
   const handleDragEnd = (e) => {
-    console.log('Drag end event triggered');
     setDraggedComponent(null);
     setDragOverIndex(null);
     e.stopPropagation();
@@ -1093,10 +1079,7 @@ function App() {
                           onDragStart={(e) => handleDragStart(e, component)}
                           onDragOver={(e) => handleDragOver(e, index)}
                           onDragLeave={handleDragLeave}
-                          onDrop={(e) => {
-                            console.log('onDrop triggered on body component:', index);
-                            handleDrop(e, index);
-                          }}
+                          onDrop={(e) => handleDrop(e, index)}
                           onDragEnd={handleDragEnd}
                         >
                           <span className="tree-arrow">→</span>
@@ -1125,10 +1108,7 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, fin)}
-                            onDragEnd={(e) => {
-                              console.log('Fin drag end triggered');
-                              handleDragEnd(e);
-                            }}
+                            onDragEnd={handleDragEnd}
                           >
                             <span className="tree-arrow">  →</span>
                             <span className="tree-label">{fin.name}</span>
@@ -1157,10 +1137,7 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, railButton)}
-                            onDragEnd={(e) => {
-                              console.log('Rail button drag end triggered');
-                              handleDragEnd(e);
-                            }}
+                            onDragEnd={handleDragEnd}
                           >
                             <span className="tree-arrow">  →</span>
                             <span className="tree-label">{railButton.name}</span>
