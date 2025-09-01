@@ -1103,6 +1103,9 @@ function App() {
                             console.log('✅ Drop event working! About to call handleDrop');
                             handleDrop(e, index);
                           }}
+                          onDragEnter={(e) => {
+                            console.log('🚪 DRAG ENTER on body component:', index);
+                          }}
                           onDragEnd={handleDragEnd}
                         >
                           <span className="tree-arrow">→</span>
