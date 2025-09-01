@@ -1084,7 +1084,8 @@ function App() {
                             cursor: draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type) ? 'copy' : 'grab',
                             backgroundColor: dragOverIndex === index && draggedComponent?.type === 'Fins' ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
                             border: '2px solid transparent',
-                            position: 'relative'
+                            position: 'relative',
+                            minHeight: '40px'
                           }}
                           onClick={() => setSelectedComponent(component)}
                           onMouseEnter={() => setHoveredComponent(component.id)}
@@ -1099,6 +1100,7 @@ function App() {
                             console.log('🎯 DROP EVENT TRIGGERED on body component:', index);
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('✅ Drop event working! About to call handleDrop');
                             handleDrop(e, index);
                           }}
                           onDragEnd={handleDragEnd}
