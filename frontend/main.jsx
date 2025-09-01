@@ -1112,6 +1112,7 @@ function App() {
                             console.log('🚪 DRAG ENTER on body component:', index);
                           }}
                           onDragEnd={handleDragEnd}
+                          data-drop-target="true"
                         >
                           <span className="tree-arrow">→</span>
                           <span className="tree-label">{component.name}</span>
