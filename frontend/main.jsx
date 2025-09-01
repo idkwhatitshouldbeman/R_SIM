@@ -344,6 +344,8 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('Drag over:', { index, draggedComponent: draggedComponent?.name, draggedType: draggedComponent?.type });
+    
     // Get the body components to find the correct index
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -352,8 +354,10 @@ function App() {
     
     if ((draggedComponent?.type === 'Fins' || draggedComponent?.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
+      console.log('Setting copy effect for attachment');
     } else {
       e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
+      console.log('Setting move effect for reordering');
     }
     
     setDragOverIndex(index);
@@ -368,12 +372,16 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('Drop event triggered:', { dropIndex, draggedComponent: draggedComponent?.name, draggedType: draggedComponent?.type });
+    
     if (!draggedComponent) {
+      console.log('No dragged component');
       return;
     }
 
     const dragIndex = rocketComponents.findIndex(comp => comp.id === draggedComponent.id);
     if (dragIndex === -1) {
+      console.log('Drag index not found');
       return;
     }
 
@@ -383,8 +391,11 @@ function App() {
     );
     const dropTarget = bodyComponents[dropIndex];
     
+    console.log('Drop target:', { name: dropTarget?.name, type: dropTarget?.type, index: dropIndex });
+    
     if ((draggedComponent.type === 'Fins' || draggedComponent.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the attachment to the body tube
+      console.log('Connecting attachment to body tube');
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
@@ -392,16 +403,19 @@ function App() {
           attachedToComponent: dropTarget.id
         };
         setRocketComponents(cleanupOrphanedComponents(newComponents));
+        console.log('Attachment successful!');
       } catch (error) {
         console.error('Error connecting attachment:', error);
       }
     } else {
       // Regular reordering
+      console.log('Regular reordering');
       try {
         const newComponents = [...rocketComponents];
         const [removed] = newComponents.splice(dragIndex, 1);
         newComponents.splice(dropIndex, 0, removed);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
+        console.log('Reordering successful!');
       } catch (error) {
         console.error('Error reordering components:', error);
       }
@@ -1103,9 +1117,6 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, fin)}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, index)}
                             onDragEnd={handleDragEnd}
                           >
                             <span className="tree-arrow">  →</span>
@@ -1135,9 +1146,6 @@ function App() {
                             onMouseLeave={() => setHoveredComponent(null)}
                             draggable
                             onDragStart={(e) => handleDragStart(e, railButton)}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, index)}
                             onDragEnd={handleDragEnd}
                           >
                             <span className="tree-arrow">  →</span>
