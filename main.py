@@ -34,10 +34,18 @@ class MeshData:
     case_parameters: Dict[str, Any]
 
 @dataclass
+class RocketComponent:
+    component_type: str
+    length: float
+    diameter: float
+    position: float
+    material: str = "aluminum"
+
+@dataclass
 class SimulationStatus:
     status: str  # 'Initializing', 'Running', 'Complete', 'Error', 'Stopped'
     progress: float
-    current_time: Optional[float] = None
+    simulation_time: Optional[float] = None  # Fixed to match Supabase schema
     message: str = ""
     cell_count: Optional[int] = None
     iteration_count: Optional[int] = None
@@ -47,7 +55,7 @@ class SimulationStatus:
 current_simulation_status = SimulationStatus(
     status="Idle",
     progress=0,
-    current_time=None,
+    simulation_time=None,
     message="Cloud Function ready for simulations",
     cell_count=None,
     iteration_count=None
@@ -83,7 +91,7 @@ def update_simulation_status(simulation_id: str, status: SimulationStatus):
             'simulation_id': simulation_id,
             'status': status.status,
             'progress': status.progress,
-            'simulation_time': status.current_time,
+            'simulation_time': status.simulation_time,
             'message': status.message,
             'cell_count': status.cell_count,
             'iteration_count': status.iteration_count,
@@ -397,7 +405,7 @@ def _run_openfoam_simulation_gcp(case_dir: Path, simulation_config: SimulationCo
     current_simulation_status.status = "Running"
     current_simulation_status.message = "Starting OpenFOAM simulation..."
     current_simulation_status.progress = 0
-    current_simulation_status.current_time = 0
+    current_simulation_status.simulation_time = 0
     current_simulation_status.iteration_count = 0
 
     try:
@@ -432,7 +440,7 @@ def _run_openfoam_simulation_gcp(case_dir: Path, simulation_config: SimulationCo
                 if "Time =" in line:
                     try:
                         current_time_val = float(line.split("Time =")[1].strip())
-                        current_simulation_status.current_time = current_time_val
+                        current_simulation_status.simulation_time = current_time_val
                         current_simulation_status.progress = 60 + (current_time_val / simulation_config.max_time) * 30
                         current_simulation_status.message = f"Running {simulation_config.solver_type}... Time: {current_time_val:.3f}s"
                         
@@ -499,7 +507,7 @@ def rocket_cfd_simulator(request):
         current_simulation_status = SimulationStatus(
             status="Initializing",
             progress=0,
-            current_time=None,
+            simulation_time=None,
             message="Downloading mesh files from Supabase",
             cell_count=None,
             iteration_count=None
