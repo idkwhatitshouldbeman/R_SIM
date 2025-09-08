@@ -1,5 +1,8 @@
 @echo off
 
+REM Navigate from current location to the project directory
+cd C:\Users\arvin\Downloads\R_SIM
+
 REM Navigate to the backend directory and activate virtual environment
 cd backend
 call venv\Scripts\activate

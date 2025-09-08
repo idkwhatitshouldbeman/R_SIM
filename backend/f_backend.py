@@ -32,6 +32,24 @@ try:
 except Exception as e:
     print(f"⚠️  Could not load OpenFOAM environment: {e}")
 
+# Import heavy CFD integration
+try:
+    from openfoam_integration import HeavyCFDManager
+    heavy_cfd_available = True
+    print("✅ Heavy CFD integration loaded")
+except ImportError as e:
+    print(f"⚠️  Heavy CFD integration not available: {e}")
+    heavy_cfd_available = False
+
+# Import Google Cloud CFD integration
+try:
+    from gcp_cfd_client import GCPCFDClient
+    gcp_cfd_available = True
+    print("✅ Google Cloud CFD integration loaded")
+except ImportError as e:
+    print(f"⚠️  Google Cloud CFD integration not available: {e}")
+    gcp_cfd_available = False
+
 # --- Data Models ---
 
 @dataclass
@@ -183,10 +201,6 @@ class SimulationStatus:
     message: str
     cell_count: Optional[int]
     iteration_count: Optional[int]
-    atmospheric: AtmosphericConditions
-    launch_site: LaunchSiteConditions
-    simulation_time: float
-    season: str
 
 # --- CppIntegrationManager ---
 
@@ -1311,7 +1325,17 @@ CORS(app)
 motor_db = MotorDatabase(db_path=os.path.join(os.path.dirname(__file__), 'database', 'motors.db'))
 env_manager = EnvironmentManager()
 cfd_engine = CFDEngine(rocket_geometry=None, environment=None) # Geometry and environment will be passed via API
-openfoam_manager = OpenFOAMManager()
+
+# Initialize CFD managers
+if gcp_cfd_available:
+    openfoam_manager = GCPCFDClient()
+    print("☁️  Google Cloud CFD manager initialized")
+elif heavy_cfd_available:
+    openfoam_manager = HeavyCFDManager()
+    print("🚀 Heavy CFD manager initialized")
+else:
+    openfoam_manager = OpenFOAMManager()
+    print("⚠️  Using simulation mode OpenFOAM manager")
 
 hardware_limits = HardwareLimitations(
     servo_max_speed=180.0,
@@ -1400,6 +1424,15 @@ def get_simulation_status():
 def stop_simulation():
     result = openfoam_manager.stop_simulation()
     return jsonify(result)
+
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """Health check endpoint for Render deployment"""
+    return jsonify({
+        "status": "healthy",
+        "heavy_cfd_available": heavy_cfd_available,
+        "openfoam_status": openfoam_manager.get_status()
+    })
 
 @app.route("/api/simulation/mesh", methods=["POST"])
 def generate_mesh():

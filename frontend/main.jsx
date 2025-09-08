@@ -14,6 +14,9 @@ function App() {
   const [hoveredComponent, setHoveredComponent] = useState(null);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const configFileInputRef = useRef(null);
+  const finFileInputRef = useRef(null);
   
   // Simulation state
   const [openSections, setOpenSections] = useState({
@@ -62,11 +65,13 @@ function App() {
   
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationStatus, setSimulationStatus] = useState(null);
+  const [stlProcessing, setStlProcessing] = useState(false);
+  const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
 
   const addComponent = (type) => {
-    // Find the last body tube to attach fins and rail buttons to
+    // Find the last body tube to attach fins to
     let attachedToComponent = null;
-    if (type === 'Fins' || type === 'Rail Button') {
+    if (type === 'Fins') {
       const bodyComponents = rocketComponents.filter(comp => 
         ['Body Tube', 'Transition'].includes(comp.type)
       );
@@ -82,14 +87,14 @@ function App() {
       id: Date.now(),
       type,
       name: `${type} ${existingCount + 1}`,
-      length: type === 'Transition' ? 30 : type === 'Nose Cone' ? 40 : type === 'Fins' ? 0 : 60,
-      diameter: type === 'Transition' ? 20 : 20,
-      topDiameter: type === 'Transition' ? 20 : 20,
-      bottomDiameter: type === 'Transition' ? 15 : 20,
-      lengthInput: type === 'Transition' ? '30' : type === 'Nose Cone' ? '40' : type === 'Fins' ? '0' : '60',
-      diameterInput: type === 'Transition' ? '20' : '20',
-      topDiameterInput: type === 'Transition' ? '20' : '20',
-      bottomDiameterInput: type === 'Transition' ? '15' : '20',
+      length: type === 'Transition' ? 30 : type === 'Nose Cone' ? 40 : type === 'Fins' ? 0 : type === 'Rail Button' ? 8 : 60,
+      diameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : 20,
+      topDiameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : 20,
+      bottomDiameter: type === 'Transition' ? 15 : type === 'Rail Button' ? 4 : 20,
+      lengthInput: type === 'Transition' ? '30' : type === 'Nose Cone' ? '40' : type === 'Fins' ? '0' : type === 'Rail Button' ? '8' : '60',
+      diameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : '20',
+      topDiameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : '20',
+      bottomDiameterInput: type === 'Transition' ? '15' : type === 'Rail Button' ? '4' : '20',
       noseShape: type === 'Nose Cone' ? 'conical' : null,
       tipLength: type === 'Nose Cone' ? 15 : null,
       finShape: type === 'Fins' ? 'rectangular' : null,
@@ -98,12 +103,699 @@ function App() {
       finWidth: type === 'Fins' ? 15 : null,
       finThickness: type === 'Fins' ? 2 : null,
       finSweep: type === 'Fins' ? 0 : null,
+      material: type === 'Fins' ? finMaterial : null,
       railButtonHeight: type === 'Rail Button' ? 8 : null,
       railButtonWidth: type === 'Rail Button' ? 4 : null,
       railButtonOffset: type === 'Rail Button' ? 2 : null,
-      attachedToComponent: attachedToComponent
+      attachedToComponent: type === 'Fins' ? attachedToComponent : null
     };
     setRocketComponents([...rocketComponents, newComponent]);
+  };
+
+  const importSTL = (event) => {
+    const file = event.target.files[0];
+    if (file && file.name.toLowerCase().endsWith('.stl')) {
+      console.log('STL file selected:', file.name, 'Size:', file.size);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const stlContent = e.target.result;
+        console.log('STL content loaded, length:', stlContent.length);
+        console.log('First 500 chars:', stlContent.substring(0, 500));
+        
+        // Process the STL to clean it up
+        const processedSTL = processSTL(stlContent);
+        console.log('STL processed, length:', processedSTL.length);
+        
+        // Calculate dimensions first
+        const dimensions = calculateSTLDimensions(processedSTL);
+        console.log('Dimensions calculated:', dimensions);
+        
+        // Create a rocket component from the STL file
+        const stlRocket = {
+          id: Date.now(),
+          type: 'Imported Rocket',
+          name: file.name.replace('.stl', ''),
+          stlData: processedSTL,
+          originalStlData: stlContent,
+          fileName: file.name,
+          fileSize: file.size,
+          // Calculate dimensions from STL data
+          length: dimensions.length,
+          diameter: dimensions.diameter,
+          topDiameter: dimensions.diameter,
+          bottomDiameter: dimensions.diameter,
+          lengthInput: dimensions.length.toString(),
+          diameterInput: dimensions.diameter.toString(),
+          topDiameterInput: dimensions.diameter.toString(),
+          bottomDiameterInput: dimensions.diameter.toString(),
+          noseShape: null,
+          tipLength: null,
+          finShape: null,
+          finCount: null,
+          finHeight: null,
+          finWidth: null,
+          finThickness: null,
+          finSweep: null,
+          railButtonHeight: null,
+          railButtonWidth: null,
+          railButtonOffset: null,
+          attachedToComponent: null
+        };
+        
+        console.log('STL rocket component created:', stlRocket);
+        
+        // Replace all existing components with the imported STL rocket
+        setRocketComponents([stlRocket]);
+        
+        // Update rocket properties based on STL dimensions
+        const weight = Math.round(dimensions.volume * 2.7); // Default to aluminum density
+        const cg = dimensions.length / 2;
+        
+        // Ensure we have valid values
+        if (isFinite(weight) && weight > 0) {
+          setRocketWeight(weight);
+        } else {
+          setRocketWeight(100); // Default weight
+        }
+        
+        if (isFinite(cg) && cg > 0) {
+          setRocketCG(cg);
+        } else {
+          setRocketCG(25); // Default CG
+        }
+        
+        console.log('Updated rocket properties:', { weight, cg, dimensions });
+        
+        // Show success message
+        alert(`STL imported successfully!\nRocket: ${stlRocket.name}\nLength: ${dimensions.length} units\nDiameter: ${dimensions.diameter} units`);
+      };
+      reader.readAsText(file);
+    } else {
+      alert('Please select a valid STL file');
+    }
+    
+    // Reset the file input
+    event.target.value = '';
+  };
+
+  const processSTL = (stlContent) => {
+    try {
+      // Parse STL content
+      const lines = stlContent.split('\n');
+      const vertices = [];
+      const faces = [];
+      let currentFace = [];
+      
+      // Extract vertices and faces from STL
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (line.startsWith('vertex')) {
+          const parts = line.split(' ');
+          const x = parseFloat(parts[1]);
+          const y = parseFloat(parts[2]);
+          const z = parseFloat(parts[3]);
+          currentFace.push([x, y, z]);
+          
+          if (currentFace.length === 3) {
+            faces.push([...currentFace]);
+            vertices.push(...currentFace);
+            currentFace = [];
+          }
+        }
+      }
+      
+      // Remove duplicate vertices and create clean mesh
+      const uniqueVertices = removeDuplicateVertices(vertices);
+      const cleanedFaces = createCleanFaces(faces, uniqueVertices);
+      
+      // Fill holes and gaps
+      const filledMesh = fillHolesAndGaps(cleanedFaces, uniqueVertices);
+      
+      // Generate cleaned STL content
+      return generateCleanSTL(filledMesh.vertices, filledMesh.faces);
+      
+    } catch (error) {
+      console.error('Error processing STL:', error);
+      return stlContent; // Return original if processing fails
+    }
+  };
+
+  const removeDuplicateVertices = (vertices) => {
+    const unique = [];
+    const seen = new Set();
+    
+    for (const vertex of vertices) {
+      const key = `${vertex[0].toFixed(6)},${vertex[1].toFixed(6)},${vertex[2].toFixed(6)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(vertex);
+      }
+    }
+    
+    return unique;
+  };
+
+  const createCleanFaces = (faces, uniqueVertices) => {
+    // Remove faces with zero area or degenerate triangles
+    return faces.filter(face => {
+      const [v1, v2, v3] = face;
+      const area = calculateTriangleArea(v1, v2, v3);
+      return area > 0.0001; // Minimum area threshold
+    });
+  };
+
+  const calculateTriangleArea = (v1, v2, v3) => {
+    const a = Math.sqrt(
+      Math.pow(v2[0] - v1[0], 2) + 
+      Math.pow(v2[1] - v1[1], 2) + 
+      Math.pow(v2[2] - v1[2], 2)
+    );
+    const b = Math.sqrt(
+      Math.pow(v3[0] - v2[0], 2) + 
+      Math.pow(v3[1] - v2[1], 2) + 
+      Math.pow(v3[2] - v2[2], 2)
+    );
+    const c = Math.sqrt(
+      Math.pow(v1[0] - v3[0], 2) + 
+      Math.pow(v1[1] - v3[1], 2) + 
+      Math.pow(v1[2] - v3[2], 2)
+    );
+    
+    const s = (a + b + c) / 2;
+    return Math.sqrt(s * (s - a) * (s - b) * (s - c));
+  };
+
+  const fillHolesAndGaps = (faces, vertices) => {
+    // Find boundary edges (edges that appear only once)
+    const edgeCount = new Map();
+    
+    for (const face of faces) {
+      for (let i = 0; i < 3; i++) {
+        const v1 = face[i];
+        const v2 = face[(i + 1) % 3];
+        const edge = [v1, v2].sort((a, b) => 
+          a[0] !== b[0] ? a[0] - b[0] : 
+          a[1] !== b[1] ? a[1] - b[1] : a[2] - b[2]
+        );
+        const edgeKey = `${edge[0]},${edge[1]}`;
+        edgeCount.set(edgeKey, (edgeCount.get(edgeKey) || 0) + 1);
+      }
+    }
+    
+    // Find boundary edges (appear only once)
+    const boundaryEdges = [];
+    for (const [edgeKey, count] of edgeCount) {
+      if (count === 1) {
+        const [v1Str, v2Str] = edgeKey.split(',');
+        const v1 = v1Str.split(',').map(Number);
+        const v2 = v2Str.split(',').map(Number);
+        boundaryEdges.push([v1, v2]);
+      }
+    }
+    
+    // Create new faces to fill holes
+    const newFaces = [...faces];
+    
+    // Simple hole filling: create triangles from boundary edges
+    for (let i = 0; i < boundaryEdges.length - 2; i++) {
+      const v1 = boundaryEdges[i][0];
+      const v2 = boundaryEdges[i + 1][0];
+      const v3 = boundaryEdges[i + 2][0];
+      
+      // Check if this creates a valid triangle
+      const area = calculateTriangleArea(v1, v2, v3);
+      if (area > 0.0001) {
+        newFaces.push([v1, v2, v3]);
+      }
+    }
+    
+    return { vertices, faces: newFaces };
+  };
+
+  const generateCleanSTL = (vertices, faces) => {
+    let stlContent = 'solid cleaned_mesh\n';
+    
+    for (const face of faces) {
+      // Calculate face normal
+      const [v1, v2, v3] = face;
+      const normal = calculateFaceNormal(v1, v2, v3);
+      
+      stlContent += `  facet normal ${normal[0]} ${normal[1]} ${normal[2]}\n`;
+      stlContent += '    outer loop\n';
+      stlContent += `      vertex ${v1[0]} ${v1[1]} ${v1[2]}\n`;
+      stlContent += `      vertex ${v2[0]} ${v2[1]} ${v2[2]}\n`;
+      stlContent += `      vertex ${v3[0]} ${v3[1]} ${v3[2]}\n`;
+      stlContent += '    endloop\n';
+      stlContent += '  endfacet\n';
+    }
+    
+    stlContent += 'endsolid cleaned_mesh\n';
+    return stlContent;
+  };
+
+  const calculateFaceNormal = (v1, v2, v3) => {
+    const ux = v2[0] - v1[0];
+    const uy = v2[1] - v1[1];
+    const uz = v2[2] - v1[2];
+    
+    const vx = v3[0] - v1[0];
+    const vy = v3[1] - v1[1];
+    const vz = v3[2] - v1[2];
+    
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    
+    const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    return [nx / length, ny / length, nz / length];
+  };
+
+  // Redraw canvas when rocket components change
+  useEffect(() => {
+    drawRocketDiagram();
+  }, [rocketComponents, zoom]);
+
+
+
+  const loadPresetConfig = (presetType) => {
+    const presets = {
+      tarc: {
+        solverType: 'pimpleFoam',
+        turbulenceModel: 'kEpsilon',
+        timeStep: 0.001,
+        maxTime: 30,
+        writeInterval: 100,
+        launchAltitude: 0,
+        temperature: 15,
+        pressure: 101325,
+        humidity: 50,
+        windSpeed: 5,
+        windDirection: 0,
+        inletVelocity: 0,
+        outletPressure: 101325,
+        wallCondition: 'noSlip',
+        domainSize: 15,
+        baseCellSize: 0.005,
+        boundaryLayerCells: 8,
+        refinementLevel: 'high',
+        meshQuality: 0.3,
+        calculateDrag: true,
+        calculateLift: true,
+        calculatePressure: true,
+        calculateVelocity: true,
+        outputFormat: 'vtk'
+      },
+      research: {
+        solverType: 'rhoPimpleFoam',
+        turbulenceModel: 'LES',
+        timeStep: 0.0005,
+        maxTime: 60,
+        writeInterval: 200,
+        launchAltitude: 0,
+        temperature: 20,
+        pressure: 101325,
+        humidity: 40,
+        windSpeed: 2,
+        windDirection: 0,
+        inletVelocity: 0,
+        outletPressure: 101325,
+        wallCondition: 'noSlip',
+        domainSize: 20,
+        baseCellSize: 0.003,
+        boundaryLayerCells: 10,
+        refinementLevel: 'high',
+        meshQuality: 0.2,
+        calculateDrag: true,
+        calculateLift: true,
+        calculatePressure: true,
+        calculateVelocity: true,
+        outputFormat: 'foam'
+      },
+      high_altitude: {
+        solverType: 'pimpleFoam',
+        turbulenceModel: 'kOmega',
+        timeStep: 0.002,
+        maxTime: 120,
+        writeInterval: 150,
+        launchAltitude: 0,
+        temperature: 15,
+        pressure: 101325,
+        humidity: 30,
+        windSpeed: 10,
+        windDirection: 0,
+        inletVelocity: 0,
+        outletPressure: 101325,
+        wallCondition: 'noSlip',
+        domainSize: 25,
+        baseCellSize: 0.008,
+        boundaryLayerCells: 6,
+        refinementLevel: 'medium',
+        meshQuality: 0.4,
+        calculateDrag: true,
+        calculateLift: false,
+        calculatePressure: true,
+        calculateVelocity: true,
+        outputFormat: 'vtk'
+      },
+      supersonic: {
+        solverType: 'rhoPimpleFoam',
+        turbulenceModel: 'DES',
+        timeStep: 0.0001,
+        maxTime: 45,
+        writeInterval: 100,
+        launchAltitude: 0,
+        temperature: 15,
+        pressure: 101325,
+        humidity: 50,
+        windSpeed: 0,
+        windDirection: 0,
+        inletVelocity: 0,
+        outletPressure: 101325,
+        wallCondition: 'noSlip',
+        domainSize: 30,
+        baseCellSize: 0.002,
+        boundaryLayerCells: 12,
+        refinementLevel: 'high',
+        meshQuality: 0.15,
+        calculateDrag: true,
+        calculateLift: true,
+        calculatePressure: true,
+        calculateVelocity: true,
+        outputFormat: 'ensight'
+      }
+    };
+
+    if (presets[presetType]) {
+      setSimulationConfig(presets[presetType]);
+      alert(`${presetType.replace('_', ' ').toUpperCase()} configuration loaded!`);
+    }
+  };
+
+  const saveSimulationConfig = () => {
+    const configData = JSON.stringify(simulationConfig, null, 2);
+    const blob = new Blob([configData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rocket_simulation_config_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('Configuration saved successfully!');
+  };
+
+  const loadSimulationConfig = () => {
+    configFileInputRef.current.click();
+  };
+
+  const handleConfigFileLoad = (event) => {
+    const file = event.target.files[0];
+    if (file && file.name.toLowerCase().endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const config = JSON.parse(e.target.result);
+          setSimulationConfig(config);
+          alert('Configuration loaded successfully!');
+        } catch (error) {
+          alert('Error loading configuration file. Please check the file format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    event.target.value = '';
+  };
+
+  const resetSimulationConfig = () => {
+    if (confirm('Are you sure you want to reset all simulation settings to defaults?')) {
+      setSimulationConfig({
+        solverType: 'pimpleFoam',
+        turbulenceModel: 'LES',
+        timeStep: 0.001,
+        maxTime: 30,
+        writeInterval: 100,
+        launchAltitude: 0,
+        temperature: 15,
+        pressure: 101325,
+        humidity: 50,
+        windSpeed: 0,
+        windDirection: 0,
+        inletVelocity: 0,
+        outletPressure: 101325,
+        wallCondition: 'noSlip',
+        domainSize: 10,
+        baseCellSize: 0.01,
+        boundaryLayerCells: 5,
+        refinementLevel: 'medium',
+        meshQuality: 0.3,
+        calculateDrag: true,
+        calculateLift: true,
+        calculatePressure: true,
+        calculateVelocity: true,
+        outputFormat: 'vtk'
+      });
+      alert('Configuration reset to defaults!');
+    }
+  };
+
+  const importFins = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const fileName = file.name.toLowerCase();
+    const isSTL = fileName.endsWith('.stl');
+    const isDXF = fileName.endsWith('.dxf');
+    
+    if (!isSTL && !isDXF) {
+      alert('Please select a valid STL or DXF file for fins');
+      event.target.value = '';
+      return;
+    }
+    
+    console.log('Fin file selected:', file.name, 'Type:', isSTL ? 'STL' : 'DXF');
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileContent = e.target.result;
+      
+      try {
+        let finData;
+        let finDimensions;
+        
+        if (isSTL) {
+          // Process STL file
+          const processedSTL = processSTL(fileContent);
+          finData = processedSTL;
+          finDimensions = calculateSTLDimensions(processedSTL);
+        } else {
+          // Process DXF file
+          finData = fileContent;
+          finDimensions = parseDXFFins(fileContent);
+        }
+        
+        // Create fin component with imported data
+        const importedFin = {
+          id: Date.now(),
+          type: 'Imported Fins',
+          name: `Imported Fins ${rocketComponents.filter(c => c.type === 'Imported Fins').length + 1}`,
+          finData: finData,
+          fileName: file.name,
+          fileType: isSTL ? 'STL' : 'DXF',
+          material: finMaterial,
+          // Fin properties
+          finCount: 4, // Default, can be adjusted
+          finHeight: finDimensions.height || 25,
+          finWidth: finDimensions.width || 15,
+          finThickness: finDimensions.thickness || 2,
+          finSweep: 0,
+          // Dimensions for display
+          length: finDimensions.thickness || 2,
+          diameter: finDimensions.width || 15,
+          topDiameter: finDimensions.width || 15,
+          bottomDiameter: finDimensions.width || 15,
+          lengthInput: (finDimensions.thickness || 2).toString(),
+          diameterInput: (finDimensions.width || 15).toString(),
+          topDiameterInput: (finDimensions.width || 15).toString(),
+          bottomDiameterInput: (finDimensions.width || 15).toString(),
+          // Other properties
+          noseShape: null,
+          tipLength: null,
+          finShape: 'custom',
+          railButtonHeight: null,
+          railButtonWidth: null,
+          railButtonOffset: null,
+          attachedToComponent: null
+        };
+        
+        console.log('Imported fin component created:', importedFin);
+        
+        // Add to existing components
+        setRocketComponents(prev => [...prev, importedFin]);
+        
+        // Show success message
+        alert(`Fins imported successfully!\nFile: ${file.name}\nMaterial: ${finMaterial}\nDimensions: ${finDimensions.width || 'N/A'} × ${finDimensions.height || 'N/A'} × ${finDimensions.thickness || 'N/A'}`);
+        
+      } catch (error) {
+        console.error('Error importing fins:', error);
+        alert('Error importing fins. Please check the file format and try again.');
+      }
+    };
+    
+    if (isSTL) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsText(file);
+    }
+    
+    // Reset the file input
+    event.target.value = '';
+  };
+
+  const parseDXFFins = (dxfContent) => {
+    try {
+      // Basic DXF parsing for fin dimensions
+      const lines = dxfContent.split('\n');
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      let minZ = Infinity, maxZ = -Infinity;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '10' && i + 1 < lines.length) { // X coordinate
+          const x = parseFloat(lines[i + 1]);
+          if (!isNaN(x)) {
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+          }
+        } else if (line === '20' && i + 1 < lines.length) { // Y coordinate
+          const y = parseFloat(lines[i + 1]);
+          if (!isNaN(y)) {
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        } else if (line === '30' && i + 1 < lines.length) { // Z coordinate
+          const z = parseFloat(lines[i + 1]);
+          if (!isNaN(z)) {
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
+          }
+        }
+      }
+      
+      const width = Math.abs(maxX - minX);
+      const height = Math.abs(maxY - minY);
+      const thickness = Math.abs(maxZ - minZ);
+      
+      return {
+        width: Math.round(width * 100) / 100,
+        height: Math.round(height * 100) / 100,
+        thickness: Math.round(thickness * 100) / 100
+      };
+    } catch (error) {
+      console.error('Error parsing DXF:', error);
+      return { width: 15, height: 25, thickness: 2 };
+    }
+  };
+
+  const calculateSTLDimensions = (stlContent) => {
+    try {
+      const lines = stlContent.split('\n');
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      let minZ = Infinity, maxZ = -Infinity;
+      let vertexCount = 0;
+      
+      for (const line of lines) {
+        if (line.trim().startsWith('vertex')) {
+          const parts = line.trim().split(' ');
+          if (parts.length >= 4) {
+            const x = parseFloat(parts[1]);
+            const y = parseFloat(parts[2]);
+            const z = parseFloat(parts[3]);
+            
+            if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+              minX = Math.min(minX, x);
+              maxX = Math.max(maxX, x);
+              minY = Math.min(minY, y);
+              maxY = Math.max(maxY, y);
+              minZ = Math.min(minZ, z);
+              maxZ = Math.max(maxZ, z);
+              vertexCount++;
+            }
+          }
+        }
+      }
+      
+      // Check if we found valid vertices
+      if (vertexCount === 0 || minX === Infinity || maxX === -Infinity) {
+        console.warn('No valid vertices found in STL, using defaults');
+        return { length: 50, diameter: 20, volume: 15708 };
+      }
+      
+      const length = Math.abs(maxZ - minZ);
+      const diameter = Math.max(Math.abs(maxX - minX), Math.abs(maxY - minY));
+      const volume = length * Math.PI * Math.pow(diameter / 2, 2);
+      
+      console.log('STL Dimensions calculated:', { length, diameter, volume, vertexCount });
+      
+      return {
+        length: Math.round(length * 100) / 100,
+        diameter: Math.round(diameter * 100) / 100,
+        volume: Math.round(volume * 100) / 100
+      };
+    } catch (error) {
+      console.error('Error calculating STL dimensions:', error);
+      return { length: 50, diameter: 20, volume: 15708 };
+    }
+  };
+
+  const drawSTLRocket = (ctx, stlComponent) => {
+    if (!stlComponent || !stlComponent.stlData) return;
+    
+    try {
+      const dimensions = calculateSTLDimensions(stlComponent.stlData);
+      const centerX = ctx.canvas.width / 2;
+      const centerY = ctx.canvas.height / 2;
+      
+      // Scale factors for display
+      const scaleX = (ctx.canvas.width * 0.6) / dimensions.diameter;
+      const scaleY = (ctx.canvas.height * 0.6) / dimensions.length;
+      const scale = Math.min(scaleX, scaleY) * zoom;
+      
+      // Draw rocket body
+      ctx.fillStyle = '#6b4c3e';
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      
+      const rocketWidth = dimensions.diameter * scale;
+      const rocketHeight = dimensions.length * scale;
+      
+      // Draw main body
+      ctx.fillRect(centerX - rocketWidth/2, centerY - rocketHeight/2, rocketWidth, rocketHeight);
+      ctx.strokeRect(centerX - rocketWidth/2, centerY - rocketHeight/2, rocketWidth, rocketHeight);
+      
+      // Draw nose cone
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - rocketHeight/2);
+      ctx.lineTo(centerX - rocketWidth/2, centerY - rocketHeight/2 + rocketWidth/2);
+      ctx.lineTo(centerX + rocketWidth/2, centerY - rocketHeight/2 + rocketWidth/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      
+      // Add label
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(stlComponent.name, centerX, centerY + rocketHeight/2 + 20);
+      ctx.fillText(`${dimensions.length.toFixed(1)} × ${dimensions.diameter.toFixed(1)}`, centerX, centerY + rocketHeight/2 + 40);
+      
+    } catch (error) {
+      console.error('Error drawing STL rocket:', error);
+    }
   };
 
   const updateComponent = (id, field, value) => {
@@ -123,7 +815,7 @@ function App() {
   // Function to clean up orphaned components
   const cleanupOrphanedComponents = (components) => {
     return components.filter(comp => {
-      if ((comp.type === 'Fins' || comp.type === 'Rail Button') && comp.attachedToComponent) {
+      if (comp.type === 'Fins' && comp.attachedToComponent) {
         // Check if the attached component still exists
         const attachedExists = components.some(c => c.id === comp.attachedToComponent);
         if (!attachedExists) {
@@ -296,9 +988,9 @@ function App() {
       // Remove the component and any components that depend on it
       const filtered = components.filter(comp => comp.id !== id);
       
-      // Clean up orphaned components (fins and rail buttons attached to deleted body tubes)
+      // Clean up orphaned components (fins attached to deleted body tubes)
       const cleaned = filtered.filter(comp => {
-        if ((comp.type === 'Fins' || comp.type === 'Rail Button') && comp.attachedToComponent) {
+        if (comp.type === 'Fins' && comp.attachedToComponent) {
           // Check if the attached component still exists
           const attachedExists = filtered.some(c => c.id === comp.attachedToComponent);
           if (!attachedExists) {
@@ -350,7 +1042,7 @@ function App() {
     );
     const dropTarget = bodyComponents[index];
     
-    if ((draggedComponent?.type === 'Fins' || draggedComponent?.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
+    if (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
       console.log(`Ready to drop ${draggedComponent?.name} onto ${dropTarget?.name} (index ${index})`);
     } else {
@@ -392,8 +1084,8 @@ function App() {
     
     console.log('Drop target found:', dropTarget?.name, 'Type:', dropTarget?.type);
     
-    if ((draggedComponent.type === 'Fins' || draggedComponent.type === 'Rail Button') && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
-      // Connect the attachment to the body tube
+    if (draggedComponent.type === 'Fins' && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
+      // Connect the fins to the body tube
       console.log(`Attempting to attach ${draggedComponent.name} to ${dropTarget.name}`);
       try {
         const newComponents = [...rocketComponents];
@@ -404,7 +1096,7 @@ function App() {
         setRocketComponents(cleanupOrphanedComponents(newComponents));
         console.log(`SUCCESS: ${draggedComponent.name} moved to ${dropTarget.name}`);
       } catch (error) {
-        console.error('Error connecting attachment:', error);
+        console.error('Error connecting fins:', error);
       }
     } else {
       // Regular reordering
@@ -451,9 +1143,18 @@ function App() {
     ctx.scale(zoom, zoom);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    // Get body components only
+    // Check if we have an imported STL rocket
+    const stlRocket = rocketComponents.find(comp => comp.type === 'Imported Rocket');
+    
+    if (stlRocket) {
+      // Draw STL rocket
+      drawSTLRocket(ctx, stlRocket);
+      return;
+    }
+    
+    // Get body components only (for built rockets)
     const bodyComponents = rocketComponents.filter(comp => 
-      ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
+      ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
     );
 
     if (bodyComponents.length === 0) return;
@@ -656,6 +1357,35 @@ function App() {
           ctx.stroke();
           ctx.setLineDash([]);
         }
+      } else if (component.type === 'Rail Button') {
+        // Draw rail button as a small rectangular component
+        const diameter = component.diameter || 20;
+        const x = centerX - diameter / 2;
+        
+        ctx.fillStyle = '#8B4513';
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, currentY, diameter, height);
+        ctx.strokeRect(x, currentY, diameter, height);
+        
+        // Add rail button detail
+        ctx.fillStyle = '#654321';
+        const railWidth = component.railButtonWidth || 4;
+        const railHeight = component.railButtonHeight || 8;
+        const railX = centerX + diameter / 2 + (component.railButtonOffset || 2);
+        const railY = currentY + height / 2 - railHeight / 2;
+        
+        ctx.fillRect(railX, railY, railWidth, railHeight);
+        ctx.strokeRect(railX, railY, railWidth, railHeight);
+        
+        // Highlight if selected
+        if (selectedComponent?.id === component.id) {
+          ctx.strokeStyle = '#00FF00';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(x, currentY, diameter, height);
+          ctx.setLineDash([]);
+        }
       }
 
       currentY += height;
@@ -669,13 +1399,7 @@ function App() {
       });
     }
     
-    // Draw rail buttons if any rail button components exist
-    const railButtonComponents = rocketComponents.filter(comp => comp.type === 'Rail Button');
-    if (railButtonComponents.length > 0 && ctx) {
-      railButtonComponents.forEach(railButtonComponent => {
-        drawRailButtons(ctx, railButtonComponent, centerX, canvas.height);
-      });
-    }
+
     
     // Restore canvas context after zoom transformation
     ctx.restore();
@@ -706,7 +1430,7 @@ function App() {
       // If no specific attachment, find the last body tube
       if (!attachedComponent) {
         const bodyComponents = rocketComponents.filter(comp => 
-          ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
+          ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
         );
         if (bodyComponents.length === 0) return;
         attachedComponent = bodyComponents[bodyComponents.length - 1];
@@ -714,7 +1438,7 @@ function App() {
       
       // Calculate position relative to the attached component
       const bodyComponents = rocketComponents.filter(comp => 
-        ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
+        ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
       );
       const totalHeight = bodyComponents.reduce((sum, comp) => sum + (comp.length || 60), 0);
       const startY = (canvasHeight - totalHeight) / 2;
@@ -774,70 +1498,7 @@ function App() {
 
 
 
-  const drawRailButtons = (ctx, railButtonComponent, centerX, canvasHeight) => {
-    try {
-      const railButtonHeight = Math.max(2, Math.min(20, railButtonComponent.railButtonHeight || 8));
-      const railButtonWidth = Math.max(1, Math.min(10, railButtonComponent.railButtonWidth || 4));
-      const railButtonOffset = Math.max(0, Math.min(10, railButtonComponent.railButtonOffset || 2));
-      
-      // Find the component that rail buttons are attached to
-      const attachedComponentId = railButtonComponent.attachedToComponent;
-      let attachedComponent = null;
-      
-      if (attachedComponentId) {
-        // Find the specific component rail buttons are attached to
-        attachedComponent = rocketComponents.find(comp => comp.id === attachedComponentId);
-      }
-      
-      // If no specific attachment, find the last body tube
-      if (!attachedComponent) {
-        const bodyComponents = rocketComponents.filter(comp => 
-          ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
-        );
-        if (bodyComponents.length === 0) return;
-        attachedComponent = bodyComponents[bodyComponents.length - 1];
-      }
-      
-      // Calculate position relative to the attached component
-      const bodyComponents = rocketComponents.filter(comp => 
-        ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
-      );
-      const totalHeight = bodyComponents.reduce((sum, comp) => sum + (comp.length || 60), 0);
-      const startY = (canvasHeight - totalHeight) / 2;
-      
-      // Find the Y position of the attached component
-      let attachedComponentY = startY;
-      for (const comp of bodyComponents) {
-        if (comp.id === attachedComponent.id) {
-          break;
-        }
-        attachedComponentY += comp.length || 60;
-      }
-      
-      // Position rail buttons at the middle of the attached component
-      const railButtonY = attachedComponentY + (attachedComponent.length || 60) / 2;
-      const bodyDiameter = attachedComponent.diameter || 20;
-      const bodyRadius = bodyDiameter / 2;
-    
-      ctx.fillStyle = '#8B4513';
-      ctx.strokeStyle = '#654321';
-      ctx.lineWidth = 1;
-      
-      // Draw one rail button on the right side only
-      const railButtonX = centerX + bodyRadius + railButtonOffset;
-      
-      ctx.save();
-      ctx.translate(railButtonX, railButtonY);
-      
-      // Draw rail button as a small rectangle
-      ctx.fillRect(-railButtonWidth/2, -railButtonHeight/2, railButtonWidth, railButtonHeight);
-      ctx.strokeRect(-railButtonWidth/2, -railButtonHeight/2, railButtonWidth, railButtonHeight);
-      
-      ctx.restore();
-    } catch (error) {
-      console.error('Error drawing rail buttons:', error);
-    }
-  };
+
 
   useEffect(() => {
     drawRocketDiagram();
@@ -862,6 +1523,7 @@ function App() {
         [`${selectedComponent.id}-finWidth`]: selectedComponent.finWidth?.toString() || '15',
         [`${selectedComponent.id}-finThickness`]: selectedComponent.finThickness?.toString() || '2',
         [`${selectedComponent.id}-finSweep`]: selectedComponent.finSweep?.toString() || '0',
+        [`${selectedComponent.id}-material`]: selectedComponent.material || 'carbon_fiber',
         [`${selectedComponent.id}-attachedToComponent`]: selectedComponent.attachedToComponent || ''
       }));
     }
@@ -1064,15 +1726,13 @@ function App() {
                   </div>
                   {/* Render body components first, then show their attached fins */}
                   {rocketComponents.filter(comp => 
-                    ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
+                    ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
                   ).map((component, index) => {
-                    // Check if this component has fins or rail buttons attached to it
+                    // Check if this component has fins attached to it
                     const attachedFins = rocketComponents.filter(comp => 
                       comp.type === 'Fins' && comp.attachedToComponent === component.id
                     );
-                    const attachedRailButtons = rocketComponents.filter(comp => 
-                      comp.type === 'Rail Button' && comp.attachedToComponent === component.id
-                    );
+
                     
 
                     
@@ -1095,7 +1755,14 @@ function App() {
                           onDragOver={(e) => {
                             console.log('🎯 DRAG OVER on body component:', index);
                             e.preventDefault(); // This is crucial for drop zones to work!
-                            e.dataTransfer.dropEffect = 'copy'; // Explicitly set drop effect
+                            
+                            // Set drop effect based on component type
+                            if (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type)) {
+                              e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting fins
+                            } else {
+                              e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
+                            }
+                            
                             handleDragOver(e, index);
                           }}
                           onDragLeave={handleDragLeave}
@@ -1159,41 +1826,14 @@ function App() {
                           </div>
                         ))}
                         
-                        {/* Show attached rail buttons as sub-items */}
-                        {attachedRailButtons.map((railButton, railIndex) => (
-                          <div 
-                            key={railButton.id}
-                            className={`tree-item sub-item ${selectedComponent?.id === railButton.id ? 'selected' : ''} ${draggedComponent?.id === railButton.id ? 'dragging' : ''}`}
-                            onClick={() => setSelectedComponent(railButton)}
-                            onMouseEnter={() => setHoveredComponent(railButton.id)}
-                            onMouseLeave={() => setHoveredComponent(null)}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, railButton)}
-                            onDragEnd={handleDragEnd}
-                          >
-                            <span className="tree-arrow">  →</span>
-                            <span className="tree-label">{railButton.name}</span>
-                            {hoveredComponent === railButton.id && (
-                              <button 
-                                className="delete-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteComponent(railButton.id);
-                                }}
-                                title="Delete component"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        ))}
+
                       </div>
                     );
                   })}
                   
-                  {/* Show any unattached fins and rail buttons at the bottom */}
+                  {/* Show any unattached fins at the bottom */}
                   {rocketComponents.filter(comp => 
-                    (comp.type === 'Fins' || comp.type === 'Rail Button') && !comp.attachedToComponent
+                    comp.type === 'Fins' && !comp.attachedToComponent
                   ).map((component, index) => (
                     <div 
                       key={component.id}
@@ -1203,25 +1843,25 @@ function App() {
                       onMouseLeave={() => setHoveredComponent(null)}
                       draggable
                       onDragStart={(e) => handleDragStart(e, component)}
-                      onDragOver={(e) => {
-                        // For unattached components, allow dropping on any body component
-                        const bodyComponents = rocketComponents.filter(comp => 
-                          ['Body Tube', 'Transition'].includes(comp.type)
-                        );
-                        if (bodyComponents.length > 0) {
-                          handleDragOver(e, bodyComponents.length - 1); // Drop on last body component
-                        }
-                      }}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => {
-                        // For unattached components, drop on last body component
-                        const bodyComponents = rocketComponents.filter(comp => 
-                          ['Body Tube', 'Transition'].includes(comp.type)
-                        );
-                        if (bodyComponents.length > 0) {
-                          handleDrop(e, bodyComponents.length - 1); // Drop on last body component
-                        }
-                      }}
+                                                onDragOver={(e) => {
+                            // For unattached fins, allow dropping on any body component
+                            const bodyComponents = rocketComponents.filter(comp => 
+                              ['Body Tube', 'Transition'].includes(comp.type)
+                            );
+                            if (bodyComponents.length > 0) {
+                              handleDragOver(e, bodyComponents.length - 1); // Drop on last body component
+                            }
+                          }}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => {
+                            // For unattached fins, drop on last body component
+                            const bodyComponents = rocketComponents.filter(comp => 
+                              ['Body Tube', 'Transition'].includes(comp.type)
+                            );
+                            if (bodyComponents.length > 0) {
+                              handleDrop(e, bodyComponents.length - 1); // Drop on last body component
+                            }
+                          }}
                       onDragEnd={handleDragEnd}
                     >
                       <span className="tree-arrow">→</span>
@@ -1398,6 +2038,27 @@ function App() {
                               </select>
                             </div>
                             <div className="config-field">
+                              <label>Fin Material:</label>
+                              <select 
+                                data-material="true"
+                                value={inputValues[`${selectedComponent.id}-material`] || selectedComponent.material || 'carbon_fiber'} 
+                                onChange={(e) => {
+                                  setInputValues(prev => ({
+                                    ...prev,
+                                    [`${selectedComponent.id}-material`]: e.target.value
+                                  }));
+                                  updateComponent(selectedComponent.id, 'material', e.target.value);
+                                }}
+                              >
+                                <option value="carbon_fiber">Carbon Fiber (1.6 g/cm³)</option>
+                                <option value="fiberglass">Fiberglass (1.8 g/cm³)</option>
+                                <option value="aluminum">Aluminum (2.7 g/cm³)</option>
+                                <option value="balsa">Balsa Wood (0.12 g/cm³)</option>
+                                <option value="plywood">Plywood (0.6 g/cm³)</option>
+                                <option value="plastic">Plastic (1.2 g/cm³)</option>
+                              </select>
+                            </div>
+                            <div className="config-field">
                               <label>Number of Fins:</label>
                               <select 
                                 value={inputValues[`${selectedComponent.id}-finCount`] || '4'}
@@ -1476,6 +2137,24 @@ function App() {
                         ) : selectedComponent.type === 'Rail Button' ? (
                           <>
                             <div className="config-field">
+                              <label>Length (cm):</label>
+                              <input 
+                                type="text" 
+                                value={inputValues[`${selectedComponent.id}-length`] !== undefined ? inputValues[`${selectedComponent.id}-length`] : selectedComponent.length}
+                                onChange={(e) => handleNumberInput(selectedComponent.id, 'length', e.target.value)}
+                                placeholder="Enter length"
+                              />
+                            </div>
+                            <div className="config-field">
+                              <label>Diameter (cm):</label>
+                              <input 
+                                type="text" 
+                                value={inputValues[`${selectedComponent.id}-diameter`] !== undefined ? inputValues[`${selectedComponent.id}-diameter`] : selectedComponent.diameter}
+                                onChange={(e) => handleNumberInput(selectedComponent.id, 'diameter', e.target.value)}
+                                placeholder="Enter diameter"
+                              />
+                            </div>
+                            <div className="config-field">
                               <label>Rail Button Height (cm):</label>
                               <input 
                                 type="text" 
@@ -1501,25 +2180,6 @@ function App() {
                                 onChange={(e) => handleNumberInput(selectedComponent.id, 'railButtonOffset', e.target.value)}
                                 placeholder="Enter offset"
                               />
-                            </div>
-                            <div className="config-field">
-                              <label>Attach to Component:</label>
-                              <select 
-                                value={selectedComponent.attachedToComponent || ''}
-                                onChange={(e) => {
-                                  const newValue = e.target.value || null;
-                                  updateComponent(selectedComponent.id, 'attachedToComponent', newValue);
-                                }}
-                              >
-                                <option value="">Auto (Last Body Tube)</option>
-                                {rocketComponents.filter(comp => 
-                                  ['Body Tube', 'Transition'].includes(comp.type)
-                                ).map(comp => (
-                                  <option key={comp.id} value={comp.id}>
-                                    {comp.name}
-                                  </option>
-                                ))}
-                              </select>
                             </div>
                           </>
                         ) : (
@@ -1558,20 +2218,47 @@ function App() {
                           <div className="component-icon transition"></div>
                           Transition
                         </button>
+                        <button className="component-btn" onClick={() => addComponent('Rail Button')}>
+                          <div className="component-icon rail-button"></div>
+                          Rail Button
+                        </button>
                       </div>
                     </div>
                     
                     <div className="category">
-                      <h4>Fins & Attachments</h4>
+                      <h4>Fins</h4>
                       <div className="component-grid">
                         <button className="component-btn" onClick={() => addComponent('Fins')}>
                           <div className="component-icon fins"></div>
                           Fins
                         </button>
-                        <button className="component-btn" onClick={() => addComponent('Rail Button')}>
-                          <div className="component-icon rail-button"></div>
-                          Rail Button
+                        <button className="component-btn import-btn" onClick={() => finFileInputRef.current.click()}>
+                          <div className="component-icon import-icon"></div>
+                          Import Fins
                         </button>
+                        <input
+                          ref={finFileInputRef}
+                          type="file"
+                          accept=".stl,.dxf"
+                          onChange={importFins}
+                          style={{ display: 'none' }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="category">
+                      <div className="component-grid full-width">
+                        <button className="component-btn stl-import-btn full-width-btn" onClick={() => fileInputRef.current.click()}>
+                          <div className="component-icon stl-icon"></div>
+                          Import STL
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".stl"
+                          onChange={importSTL}
+                          style={{ display: 'none' }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1584,6 +2271,59 @@ function App() {
         {activeTab === 'setup' && (
           <div className="tab-content">
             <h2>Simulation Setup</h2>
+            
+            {/* Preset Configurations */}
+            <div className="preset-configs">
+              <h3>Quick Presets</h3>
+              <div className="preset-buttons">
+                <button 
+                  className="preset-btn tarc" 
+                  onClick={() => loadPresetConfig('tarc')}
+                >
+                  TARC Competition
+                </button>
+                <button 
+                  className="preset-btn research" 
+                  onClick={() => loadPresetConfig('research')}
+                >
+                  Research Rocket
+                </button>
+                <button 
+                  className="preset-btn high-altitude" 
+                  onClick={() => loadPresetConfig('high_altitude')}
+                >
+                  High Altitude
+                </button>
+                <button 
+                  className="preset-btn supersonic" 
+                  onClick={() => loadPresetConfig('supersonic')}
+                >
+                  Supersonic
+                </button>
+              </div>
+            </div>
+            
+            {/* Configuration Management */}
+            <div className="config-management">
+              <div className="config-actions">
+                <button className="config-btn save" onClick={saveSimulationConfig}>
+                  Save Config
+                </button>
+                <button className="config-btn load" onClick={loadSimulationConfig}>
+                  Load Config
+                </button>
+                <button className="config-btn reset" onClick={resetSimulationConfig}>
+                  Reset to Defaults
+                </button>
+              </div>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleConfigFileLoad}
+                style={{ display: 'none' }}
+                ref={configFileInputRef}
+              />
+            </div>
             
             <div className="simulation-sections">
               {/* CFD Solver Settings */}

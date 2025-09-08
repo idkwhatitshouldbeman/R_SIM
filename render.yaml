@@ -1,0 +1,38 @@
+# Render deployment configuration for Heavy CFD Rocket Simulation Platform
+services:
+  - type: web
+    name: rocket-sim-backend
+    env: python
+    plan: starter  # Free tier
+    buildCommand: |
+      pip install -r requirements.txt
+      python setup_openfoam.py
+    startCommand: python backend/f_backend.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: false
+      - key: PORT
+        value: 5000
+    healthCheckPath: /api/health
+    disk:
+      name: openfoam-cases
+      mountPath: /app/openfoam_cases
+      sizeGB: 1
+
+  - type: web
+    name: rocket-sim-frontend
+    env: static
+    buildCommand: |
+      cd frontend
+      pnpm install
+      pnpm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://rocket-sim-backend.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
