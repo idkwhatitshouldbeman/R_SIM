@@ -83,7 +83,7 @@ def update_simulation_status(simulation_id: str, status: SimulationStatus):
             'simulation_id': simulation_id,
             'status': status.status,
             'progress': status.progress,
-            'current_time': status.current_time,
+            'simulation_time': status.current_time,
             'message': status.message,
             'cell_count': status.cell_count,
             'iteration_count': status.iteration_count,
