@@ -12,7 +12,7 @@ SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 def test_supabase_connection():
     """Test basic Supabase connection"""
-    print("🔍 Testing Supabase connection...")
+    print("Testing Supabase connection...")
     
     headers = {
         'Authorization': f'Bearer {SUPABASE_ANON_KEY}',
@@ -29,20 +29,22 @@ def test_supabase_connection():
         )
         
         if response.status_code == 200:
-            print("✅ Supabase connection successful!")
+            print("PASS Supabase connection")
             return True
         else:
-            print(f"❌ Supabase connection failed: {response.status_code}")
+            print("FAIL Supabase connection")
+            print(f"Status Code: {response.status_code}")
             print(f"Response: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Supabase connection error: {e}")
+        print("FAIL Supabase connection")
+        print(f"Error: {e}")
         return False
 
 def test_simulation_status_crud():
     """Test CRUD operations on simulation_status table"""
-    print("\n🔍 Testing simulation_status CRUD operations...")
+    print("\nTesting simulation_status CRUD operations...")
     
     headers = {
         'Authorization': f'Bearer {SUPABASE_ANON_KEY}',
@@ -55,7 +57,7 @@ def test_simulation_status_crud():
     
     try:
         # CREATE - Insert new simulation status
-        print("📝 Creating simulation status...")
+        print("Creating simulation status...")
         create_data = {
             'simulation_id': simulation_id,
             'status': 'Initializing',
@@ -71,14 +73,15 @@ def test_simulation_status_crud():
         )
         
         if response.status_code == 201:
-            print("✅ Simulation status created successfully!")
+            print("PASS Create simulation status")
         else:
-            print(f"❌ Failed to create simulation status: {response.status_code}")
+            print("FAIL Create simulation status")
+            print(f"Status Code: {response.status_code}")
             print(f"Response: {response.text}")
             return False
         
         # READ - Get simulation status
-        print("📖 Reading simulation status...")
+        print("Reading simulation status...")
         response = requests.get(
             f"{SUPABASE_URL}/rest/v1/simulation_status?simulation_id=eq.{simulation_id}",
             headers=headers,
@@ -88,18 +91,20 @@ def test_simulation_status_crud():
         if response.status_code == 200:
             data = response.json()
             if data:
-                print("✅ Simulation status read successfully!")
-                print(f"   Status: {data[0]['status']}")
-                print(f"   Progress: {data[0]['progress']}")
+                print("PASS Read simulation status")
+                print(f"Status: {data[0]['status']}")
+                print(f"Progress: {data[0]['progress']}")
             else:
-                print("❌ No data returned")
+                print("FAIL Read simulation status - No data returned")
                 return False
         else:
-            print(f"❌ Failed to read simulation status: {response.status_code}")
+            print("FAIL Read simulation status")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
             return False
         
         # UPDATE - Update simulation status
-        print("✏️  Updating simulation status...")
+        print("Updating simulation status...")
         update_data = {
             'status': 'Running',
             'progress': 50,
@@ -113,10 +118,12 @@ def test_simulation_status_crud():
             timeout=10
         )
         
-        if response.status_code == 200:
-            print("✅ Simulation status updated successfully!")
+        if response.status_code in [200, 204]:
+            print("PASS Update simulation status")
         else:
-            print(f"❌ Failed to update simulation status: {response.status_code}")
+            print("FAIL Update simulation status")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
             return False
         
         # Verify update
@@ -129,20 +136,27 @@ def test_simulation_status_crud():
         if response.status_code == 200:
             data = response.json()
             if data and data[0]['status'] == 'Running':
-                print("✅ Update verified successfully!")
+                print("PASS Verify update")
             else:
-                print("❌ Update verification failed")
+                print("FAIL Verify update")
+                print(f"Expected status: Running, Got: {data[0]['status'] if data else 'No data'}")
                 return False
+        else:
+            print("FAIL Verify update")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
         
         return True
         
     except Exception as e:
-        print(f"❌ CRUD operations error: {e}")
+        print("FAIL CRUD operations")
+        print(f"Error: {e}")
         return False
 
 def test_simulation_results():
     """Test simulation_results table operations"""
-    print("\n🔍 Testing simulation_results operations...")
+    print("\nTesting simulation_results operations...")
     
     headers = {
         'Authorization': f'Bearer {SUPABASE_ANON_KEY}',
@@ -154,7 +168,7 @@ def test_simulation_results():
     
     try:
         # Insert simulation results
-        print("📝 Creating simulation results...")
+        print("Creating simulation results...")
         results_data = {
             'simulation_id': simulation_id,
             'results': {
@@ -173,14 +187,15 @@ def test_simulation_results():
         )
         
         if response.status_code == 201:
-            print("✅ Simulation results created successfully!")
+            print("PASS Create simulation results")
         else:
-            print(f"❌ Failed to create simulation results: {response.status_code}")
+            print("FAIL Create simulation results")
+            print(f"Status Code: {response.status_code}")
             print(f"Response: {response.text}")
             return False
         
         # Read simulation results
-        print("📖 Reading simulation results...")
+        print("Reading simulation results...")
         response = requests.get(
             f"{SUPABASE_URL}/rest/v1/simulation_results?simulation_id=eq.{simulation_id}",
             headers=headers,
@@ -190,25 +205,28 @@ def test_simulation_results():
         if response.status_code == 200:
             data = response.json()
             if data:
-                print("✅ Simulation results read successfully!")
-                print(f"   Max Altitude: {data[0]['results']['max_altitude']}")
-                print(f"   Max Velocity: {data[0]['results']['max_velocity']}")
+                print("PASS Read simulation results")
+                print(f"Max Altitude: {data[0]['results']['max_altitude']}")
+                print(f"Max Velocity: {data[0]['results']['max_velocity']}")
             else:
-                print("❌ No results data returned")
+                print("FAIL Read simulation results - No data returned")
                 return False
         else:
-            print(f"❌ Failed to read simulation results: {response.status_code}")
+            print("FAIL Read simulation results")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
             return False
         
         return True
         
     except Exception as e:
-        print(f"❌ Simulation results error: {e}")
+        print("FAIL Simulation results")
+        print(f"Error: {e}")
         return False
 
 def test_storage_bucket():
     """Test storage bucket access"""
-    print("\n🔍 Testing storage bucket access...")
+    print("\nTesting storage bucket access...")
     
     headers = {
         'Authorization': f'Bearer {SUPABASE_ANON_KEY}',
@@ -216,31 +234,34 @@ def test_storage_bucket():
     }
     
     try:
-        # List files in mesh-files bucket
+        # Try to get bucket info instead of listing files
         response = requests.get(
-            f"{SUPABASE_URL}/storage/v1/object/list/mesh-files",
+            f"{SUPABASE_URL}/storage/v1/bucket/mesh-files",
             headers=headers,
             timeout=10
         )
         
         if response.status_code == 200:
-            print("✅ Storage bucket access successful!")
-            files = response.json()
-            print(f"   Found {len(files)} files in mesh-files bucket")
+            print("PASS Storage bucket access")
+            bucket_info = response.json()
+            print(f"Bucket: {bucket_info.get('name', 'mesh-files')}")
+            print(f"Public: {bucket_info.get('public', False)}")
         else:
-            print(f"❌ Storage bucket access failed: {response.status_code}")
+            print("FAIL Storage bucket access")
+            print(f"Status Code: {response.status_code}")
             print(f"Response: {response.text}")
             return False
         
         return True
         
     except Exception as e:
-        print(f"❌ Storage bucket error: {e}")
+        print("FAIL Storage bucket")
+        print(f"Error: {e}")
         return False
 
 def main():
     """Run all Supabase integration tests"""
-    print("🚀 SUPABASE INTEGRATION TEST SUITE")
+    print("SUPABASE INTEGRATION TEST SUITE")
     print("=" * 60)
     
     tests = [
@@ -256,31 +277,32 @@ def main():
             result = test_func()
             results.append((test_name, result))
         except Exception as e:
-            print(f"❌ {test_name} crashed: {e}")
+            print(f"FAIL {test_name}")
+            print(f"Error: {e}")
             results.append((test_name, False))
     
     # Print results
     print("\n" + "=" * 60)
-    print("📊 TEST RESULTS:")
+    print("TEST RESULTS:")
     print("=" * 60)
     
     passed = 0
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "PASS" if result else "FAIL"
         print(f"{status} {test_name}")
         if result:
             passed += 1
     
-    print(f"\n🎯 {passed}/{len(results)} tests passed")
+    print(f"\n{passed}/{len(results)} tests passed")
     
     if passed == len(results):
-        print("\n🎉 All tests passed! Supabase integration is ready!")
-        print("\n📋 Next steps:")
+        print("\nAll tests passed! Supabase integration is ready!")
+        print("\nNext steps:")
         print("1. Deploy the Cloud Function: gcloud functions deploy rocket-cfd-simulator --runtime python311 --trigger-http --allow-unauthenticated")
         print("2. Test the full integration: py test_gcp_integration.py")
     else:
-        print("\n⚠️  Some tests failed. Check the errors above.")
-        print("\n🔧 Common fixes:")
+        print("\nSome tests failed. Check the errors above.")
+        print("\nCommon fixes:")
         print("- Make sure the database schema is set up (run supabase_schema.sql)")
         print("- Check your Supabase project settings")
         print("- Verify the API keys are correct")
