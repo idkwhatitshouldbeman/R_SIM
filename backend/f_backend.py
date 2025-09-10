@@ -1319,7 +1319,19 @@ functions
 
 # --- Flask App and Routes ---
 
-app = Flask(__name__, static_folder='../frontend/dist', static_url_path='')
+# Get the absolute path to the frontend dist directory
+import os
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+frontend_dist_dir = os.path.join(backend_dir, '..', 'frontend', 'dist')
+
+# Debug: Print the paths
+print(f"Backend directory: {backend_dir}")
+print(f"Frontend dist directory: {frontend_dist_dir}")
+print(f"Frontend dist exists: {os.path.exists(frontend_dist_dir)}")
+if os.path.exists(frontend_dist_dir):
+    print(f"Files in frontend dist: {os.listdir(frontend_dist_dir)}")
+
+app = Flask(__name__, static_folder=frontend_dist_dir, static_url_path='/')
 CORS(app)
 
 motor_db = MotorDatabase(db_path=os.path.join(os.path.dirname(__file__), 'database', 'motors.db'))
@@ -1440,15 +1452,16 @@ def health_check():
         "openfoam_status": openfoam_manager.get_status()
     })
 
-@app.route("/")
-def serve_frontend():
-    """Serve the React frontend"""
-    return app.send_static_file('index.html')
-
-@app.route("/<path:path>")
-def serve_static(path):
-    """Serve static files for the frontend"""
-    return app.send_static_file(path)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    """Serve the React frontend and handle client-side routing"""
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        # Serve static files (JS, CSS, images, etc.)
+        return app.send_static_file(path)
+    else:
+        # Serve index.html for all other routes (React Router)
+        return app.send_static_file('index.html')
 
 @app.route("/api/simulation/mesh", methods=["POST"])
 def generate_mesh():
