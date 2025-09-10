@@ -1325,11 +1325,27 @@ backend_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_dist_dir = os.path.join(backend_dir, '..', 'frontend', 'dist')
 
 # Debug: Print the paths
+print("=== FLASK STARTUP DIAGNOSTICS ===")
 print(f"Backend directory: {backend_dir}")
 print(f"Frontend dist directory: {frontend_dist_dir}")
 print(f"Frontend dist exists: {os.path.exists(frontend_dist_dir)}")
+print(f"Current working directory: {os.getcwd()}")
+print(f"All files in current directory: {os.listdir('.')}")
+print(f"All files in backend directory: {os.listdir(backend_dir)}")
+
 if os.path.exists(frontend_dist_dir):
     print(f"Files in frontend dist: {os.listdir(frontend_dist_dir)}")
+    # Check for index.html specifically
+    index_path = os.path.join(frontend_dist_dir, 'index.html')
+    print(f"index.html exists: {os.path.exists(index_path)}")
+else:
+    print("Frontend dist directory does not exist!")
+    # Check if frontend directory exists
+    frontend_dir = os.path.join(backend_dir, '..', 'frontend')
+    print(f"Frontend directory exists: {os.path.exists(frontend_dir)}")
+    if os.path.exists(frontend_dir):
+        print(f"Files in frontend directory: {os.listdir(frontend_dir)}")
+print("=== END FLASK STARTUP DIAGNOSTICS ===")
 
 app = Flask(__name__, static_folder=frontend_dist_dir, static_url_path='/')
 CORS(app)
@@ -1456,12 +1472,40 @@ def health_check():
 @app.route('/<path:path>')
 def serve(path):
     """Serve the React frontend and handle client-side routing"""
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        # Serve static files (JS, CSS, images, etc.)
+    print(f"=== ROUTE DEBUG: Serving path '{path}' ===")
+    print(f"Static folder: {app.static_folder}")
+    print(f"Static folder exists: {os.path.exists(app.static_folder) if app.static_folder else 'None'}")
+    
+    if app.static_folder and os.path.exists(app.static_folder):
+        print(f"Files in static folder: {os.listdir(app.static_folder)}")
+    
+    if path != "" and app.static_folder and os.path.exists(os.path.join(app.static_folder, path)):
+        print(f"Serving static file: {path}")
         return app.send_static_file(path)
     else:
-        # Serve index.html for all other routes (React Router)
-        return app.send_static_file('index.html')
+        print("Serving index.html")
+        if app.static_folder and os.path.exists(os.path.join(app.static_folder, 'index.html')):
+            return app.send_static_file('index.html')
+        else:
+            # Fallback: return diagnostic information
+            return f"""
+            <html>
+            <head><title>R_SIM Diagnostic</title></head>
+            <body>
+                <h1>R_SIM Diagnostic Information</h1>
+                <h2>Static Folder Configuration</h2>
+                <p><strong>Static Folder:</strong> {app.static_folder}</p>
+                <p><strong>Static Folder Exists:</strong> {os.path.exists(app.static_folder) if app.static_folder else 'None'}</p>
+                <p><strong>Requested Path:</strong> {path}</p>
+                <p><strong>Current Working Directory:</strong> {os.getcwd()}</p>
+                <h2>Directory Contents</h2>
+                <p><strong>Root Directory:</strong> {os.listdir('.')}</p>
+                <p><strong>Backend Directory:</strong> {os.listdir(backend_dir)}</p>
+                {f'<p><strong>Frontend Directory:</strong> {os.listdir(os.path.join(backend_dir, "..", "frontend"))}</p>' if os.path.exists(os.path.join(backend_dir, "..", "frontend")) else '<p>Frontend directory does not exist</p>'}
+                {f'<p><strong>Frontend Dist Directory:</strong> {os.listdir(frontend_dist_dir)}</p>' if os.path.exists(frontend_dist_dir) else '<p>Frontend dist directory does not exist</p>'}
+            </body>
+            </html>
+            """, 200
 
 @app.route("/api/simulation/mesh", methods=["POST"])
 def generate_mesh():

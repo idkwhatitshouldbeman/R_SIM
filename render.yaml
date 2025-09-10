@@ -7,16 +7,40 @@ services:
     env: python
     plan: starter  # Free tier - only handles web API, not CFD
     buildCommand: |
-      # Install Node.js for frontend build
+      echo "=== DIAGNOSTIC: Starting build process ==="
+      echo "Current directory: $(pwd)"
+      echo "Directory contents: $(ls -la)"
+      echo "Frontend directory exists: $(test -d frontend && echo 'YES' || echo 'NO')"
+      echo "Backend directory exists: $(test -d backend && echo 'YES' || echo 'NO')"
+      
+      echo "=== DIAGNOSTIC: Installing Node.js ==="
       curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
       apt-get install -y nodejs
-      # Install Python dependencies
+      echo "Node.js version: $(node --version)"
+      echo "NPM version: $(npm --version)"
+      
+      echo "=== DIAGNOSTIC: Installing Python dependencies ==="
       pip install -r backend/requirements.txt
-      # Build frontend
+      
+      echo "=== DIAGNOSTIC: Building frontend ==="
+      echo "Frontend directory contents: $(ls -la frontend/)"
+      echo "Package.json exists: $(test -f frontend/package.json && echo 'YES' || echo 'NO')"
+      
       cd frontend
+      echo "Current directory after cd: $(pwd)"
+      echo "Installing frontend dependencies..."
       npm install
+      echo "Frontend dependencies installed"
+      echo "Building frontend..."
       npm run build
+      echo "Frontend build completed"
+      echo "Frontend dist contents: $(ls -la dist/)"
       cd ..
+      
+      echo "=== DIAGNOSTIC: Final verification ==="
+      echo "Frontend dist exists: $(test -d frontend/dist && echo 'YES' || echo 'NO')"
+      echo "Frontend dist contents: $(ls -la frontend/dist/)"
+      echo "=== DIAGNOSTIC: Build process complete ==="
     startCommand: python backend/f_backend.py
     envVars:
       - key: FLASK_ENV
