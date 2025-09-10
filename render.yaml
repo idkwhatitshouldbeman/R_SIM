@@ -3,11 +3,20 @@
 # Storage is handled by Supabase, not Render
 services:
   - type: web
-    name: rocket-sim-backend
+    name: r-sim
     env: python
     plan: starter  # Free tier - only handles web API, not CFD
     buildCommand: |
+      # Install Node.js for frontend build
+      curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+      apt-get install -y nodejs
+      # Install Python dependencies
       pip install -r backend/requirements.txt
+      # Build frontend
+      cd frontend
+      npm install
+      npm run build
+      cd ..
     startCommand: python backend/f_backend.py
     envVars:
       - key: FLASK_ENV
@@ -21,19 +30,3 @@ services:
       - key: SIMULATION_MODE
         value: cloud  # Forces use of Google Cloud Functions for CFD
     healthCheckPath: /api/health
-
-  - type: web
-    name: rocket-sim-frontend
-    env: static
-    buildCommand: |
-      cd frontend
-      npm install
-      npm run build
-    staticPublishPath: frontend/dist
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://rocket-sim-backend.onrender.com/api/*
-      - type: rewrite
-        source: /*
-        destination: /index.html

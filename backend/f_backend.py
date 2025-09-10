@@ -1319,7 +1319,7 @@ functions
 
 # --- Flask App and Routes ---
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend/dist', static_url_path='')
 CORS(app)
 
 motor_db = MotorDatabase(db_path=os.path.join(os.path.dirname(__file__), 'database', 'motors.db'))
@@ -1439,6 +1439,16 @@ def health_check():
         "heavy_cfd_available": heavy_cfd_available,
         "openfoam_status": openfoam_manager.get_status()
     })
+
+@app.route("/")
+def serve_frontend():
+    """Serve the React frontend"""
+    return app.send_static_file('index.html')
+
+@app.route("/<path:path>")
+def serve_static(path):
+    """Serve static files for the frontend"""
+    return app.send_static_file(path)
 
 @app.route("/api/simulation/mesh", methods=["POST"])
 def generate_mesh():
