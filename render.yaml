@@ -1,9 +1,11 @@
 # Render deployment configuration for R_SIM Rocket Simulation Platform
+# Note: Heavy CFD simulations run on Google Cloud Functions, not Render
+# Storage is handled by Supabase, not Render
 services:
   - type: web
     name: rocket-sim-backend
     env: python
-    plan: starter  # Free tier
+    plan: starter  # Free tier - only handles web API, not CFD
     buildCommand: |
       pip install -r backend/requirements.txt
     startCommand: python backend/f_backend.py
@@ -16,11 +18,9 @@ services:
         value: 5000
       - key: PYTHONPATH
         value: /opt/render/project/src
-    healthCheckPath: /api/simulation/status
-    disk:
-      name: simulation-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
+      - key: SIMULATION_MODE
+        value: cloud  # Forces use of Google Cloud Functions for CFD
+    healthCheckPath: /api/health
 
   - type: web
     name: rocket-sim-frontend

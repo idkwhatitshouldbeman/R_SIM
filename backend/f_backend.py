@@ -1327,10 +1327,16 @@ env_manager = EnvironmentManager()
 cfd_engine = CFDEngine(rocket_geometry=None, environment=None) # Geometry and environment will be passed via API
 
 # Initialize CFD managers
-if gcp_cfd_available:
+# Check if we're in cloud mode (Render deployment)
+simulation_mode = os.environ.get('SIMULATION_MODE', 'local').lower()
+
+if simulation_mode == 'cloud' and gcp_cfd_available:
+    openfoam_manager = GCPCFDClient()
+    print("☁️  Google Cloud CFD manager initialized (Cloud Mode)")
+elif gcp_cfd_available:
     openfoam_manager = GCPCFDClient()
     print("☁️  Google Cloud CFD manager initialized")
-elif heavy_cfd_available:
+elif heavy_cfd_available and simulation_mode != 'cloud':
     openfoam_manager = HeavyCFDManager()
     print("🚀 Heavy CFD manager initialized")
 else:

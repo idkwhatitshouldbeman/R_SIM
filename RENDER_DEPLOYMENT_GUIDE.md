@@ -3,6 +3,12 @@
 ## Overview
 This guide will help you deploy the R_SIM Rocket Simulation Platform to Render.com.
 
+**Important Architecture Notes:**
+- **Render**: Handles only the web interface (frontend + lightweight API)
+- **Google Cloud Functions**: Handles heavy CFD simulations
+- **Supabase**: Handles database and file storage
+- **No Heavy Computing**: Render will NOT run CFD simulations
+
 ## Prerequisites
 - Render.com account
 - GitHub repository with your code
@@ -18,10 +24,11 @@ This guide will help you deploy the R_SIM Rocket Simulation Platform to Render.c
 
 ### 2. Automatic Deployment
 The `render.yaml` file will automatically configure:
-- **Backend Service**: Python Flask API
+- **Backend Service**: Lightweight Python Flask API (no CFD processing)
 - **Frontend Service**: React static site
-- **Database**: SQLite (local storage)
-- **File Storage**: Render disk storage
+- **CFD Processing**: Automatically routes to Google Cloud Functions
+- **Database**: Uses Supabase (not local storage)
+- **File Storage**: Uses Supabase (not Render storage)
 
 ### 3. Environment Variables
 The following environment variables are automatically set:
@@ -29,6 +36,7 @@ The following environment variables are automatically set:
 - `FLASK_DEBUG=false`
 - `PORT=5000`
 - `PYTHONPATH=/opt/render/project/src`
+- `SIMULATION_MODE=cloud` (Forces use of Google Cloud Functions)
 
 ### 4. Services Configuration
 
