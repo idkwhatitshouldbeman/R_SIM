@@ -29,17 +29,71 @@ services:
       cd frontend
       echo "Current directory after cd: $(pwd)"
       echo "Installing frontend dependencies..."
-      npm install
+      npm install || (echo "NPM INSTALL FAILED" && exit 1)
       echo "Frontend dependencies installed"
       echo "Building frontend..."
-      npm run build
+      npm run build || (echo "NPM BUILD FAILED" && exit 1)
       echo "Frontend build completed"
-      echo "Frontend dist contents: $(ls -la dist/)"
+      echo "Checking if dist directory was created..."
+      if [ -d "dist" ]; then
+        echo "Frontend dist contents: $(ls -la dist/)"
+      else
+        echo "ERROR: dist directory was not created!"
+        echo "Current directory contents: $(ls -la)"
+        exit 1
+      fi
       cd ..
       
       echo "=== DIAGNOSTIC: Final verification ==="
       echo "Frontend dist exists: $(test -d frontend/dist && echo 'YES' || echo 'NO')"
-      echo "Frontend dist contents: $(ls -la frontend/dist/)"
+      if [ -d "frontend/dist" ]; then
+        echo "Frontend dist contents: $(ls -la frontend/dist/)"
+      else
+        echo "ERROR: Frontend build failed! Creating fallback..."
+        mkdir -p frontend/dist
+        cat > frontend/dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R_SIM - Frontend Build Failed</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #e74c3c; }
+        .status { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .api-test { background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 R_SIM Platform</h1>
+        <div class="status">
+            <h3>⚠️ Frontend Build Issue</h3>
+            <p>The React frontend failed to build during deployment. The backend API is working, but the frontend needs to be fixed.</p>
+        </div>
+        <div class="api-test">
+            <h3>✅ Backend API Status</h3>
+            <p>The Flask backend is running successfully. You can test the API endpoints:</p>
+            <ul>
+                <li><a href="/api/health" target="_blank">Health Check</a></li>
+                <li><a href="/api/simulation/status" target="_blank">Simulation Status</a></li>
+            </ul>
+        </div>
+        <h3>Next Steps:</h3>
+        <ol>
+            <li>Check the build logs for frontend build errors</li>
+            <li>Verify Node.js and NPM versions are compatible</li>
+            <li>Check for missing dependencies in package.json</li>
+            <li>Fix any build configuration issues</li>
+        </ol>
+    </div>
+</body>
+</html>
+EOF
+        echo "Fallback HTML created"
+      fi
       echo "=== DIAGNOSTIC: Build process complete ==="
     startCommand: python backend/f_backend.py
     envVars:
