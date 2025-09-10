@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './App.css';
 
@@ -70,185 +70,20 @@ function App() {
   
   // Custom notification system
   const [notifications, setNotifications] = useState([]);
-  const [currentWeatherNotification, setCurrentWeatherNotification] = useState(null);
   
-  const showNotification = (message, type = 'info', autoRemove = true) => {
+  const showNotification = (message, type = 'info') => {
     const id = Date.now();
     const notification = { id, message, type };
     setNotifications(prev => [...prev, notification]);
     
-    // Auto-remove after 4 seconds only if autoRemove is true
-    if (autoRemove) {
-      setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-      }, 4000);
-    }
-    
-    return id; // Return the notification ID for manual removal
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000);
   };
   
   const removeNotification = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  // Weather condition information
-  const weatherInfo = {
-    sunny: {
-      title: "☀️ Sunny Day Conditions",
-      description: "Clear skies with minimal wind. Perfect for stable rocket launches with predictable flight paths.",
-      conditions: "• Temperature: 25°C\n• Wind Speed: 2 m/s\n• Humidity: 30%\n• Pressure: 101325 Pa\n• Turbulence: k-ε model for steady conditions"
-    },
-    rainy: {
-      title: "🌧️ Rainy Day Conditions", 
-      description: "Wet weather with moderate wind. Rain affects air density and can impact rocket performance.",
-      conditions: "• Temperature: 12°C\n• Wind Speed: 8 m/s\n• Humidity: 85%\n• Pressure: 100500 Pa\n• Turbulence: k-ω model for moisture effects"
-    },
-    windy: {
-      title: "💨 High Wind Conditions",
-      description: "Strong winds create challenging launch conditions. Requires advanced turbulence modeling.",
-      conditions: "• Temperature: 18°C\n• Wind Speed: 20 m/s\n• Humidity: 45%\n• Pressure: 101000 Pa\n• Turbulence: LES model for wind effects"
-    },
-    stormy: {
-      title: "⛈️ Stormy Weather Conditions",
-      description: "Extreme weather with high winds and low pressure. Most challenging conditions for rocket launches.",
-      conditions: "• Temperature: 8°C\n• Wind Speed: 35 m/s\n• Humidity: 95%\n• Pressure: 99500 Pa\n• Turbulence: DES model for complex flows"
-    }
-  };
-
-  const showWeatherInfo = (weatherType) => {
-    const info = weatherInfo[weatherType];
-    if (info) {
-      // Remove any existing weather notification
-      if (currentWeatherNotification) {
-        removeNotification(currentWeatherNotification);
-      }
-      
-      // Show new weather notification without auto-remove
-      const notificationId = showNotification(`${info.title}\n\n${info.description}\n\n${info.conditions}`, 'info', false);
-      setCurrentWeatherNotification(notificationId);
-    }
-  };
-
-  const hideWeatherInfo = () => {
-    if (currentWeatherNotification) {
-      removeNotification(currentWeatherNotification);
-      setCurrentWeatherNotification(null);
-    }
-  };
-
-  // Variable information for tooltips
-  const variableInfo = {
-    solver: "How the simulation calculates air flow around your rocket:\n\n• PIMPLE (Compressible): Good for most rockets, handles air compression effects well\n• InterFoam (Multiphase): For rockets with water or other fluids, more complex\n• RhoPimpleFoam (Density-based): Best for high-speed rockets, most accurate but slower",
-    turbulenceModel: "How the simulation handles air turbulence (swirling air):\n\n• k-ε (RANS): Fast and simple, good for basic rocket shapes\n• k-ω (RANS): Better for detailed surfaces, medium speed\n• LES (Large Eddy): Very accurate for complex flows, slower\n• DES (Detached Eddy): Best for rockets with lots of details, slowest but most precise",
-    timeStep: "How often the simulation updates. Smaller values = more accurate but slower. Typical range: 0.0001-0.01 seconds.",
-    maxTime: "How long to simulate the rocket flight. Longer times show more of the flight but take longer to calculate.",
-    temperature: "Air temperature around the rocket. Hotter air is thinner, affecting how the rocket moves through it.",
-    pressure: "Air pressure at launch height. Higher altitude = lower pressure. Affects how dense the air is.",
-    windSpeed: "How fast the wind is blowing. Higher wind = more force pushing on the rocket.",
-    windDirection: "Which way the wind is blowing. 0° = North, 90° = East, 180° = South, 270° = West.",
-    humidity: "How much water is in the air. More humidity = slightly denser air, affecting rocket performance.",
-    domainSize: "How big the simulation area is around the rocket. Bigger area = more accurate but slower.",
-    cellSize: "How detailed the simulation grid is. Smaller cells = more accurate but much slower.",
-    meshQuality: "How good the simulation grid quality is. Lower numbers = better quality but takes longer to create.",
-    inletVelocity: "How fast air enters the simulation area. Usually 0 for stationary rockets, or wind speed for moving rockets.",
-    outletPressure: "Air pressure at the exit of the simulation area. Usually atmospheric pressure (101325 Pa).",
-    wallCondition: "How air behaves when it hits the rocket surface:\n\n• No-Slip: Air sticks to the surface (most realistic)\n• Slip: Air slides freely (less realistic but faster)\n• Partial Slip: Somewhere in between"
-  };
-
-  const showVariableInfo = (variableType) => {
-    const info = variableInfo[variableType];
-    if (info) {
-      // Remove any existing variable notification
-      if (currentWeatherNotification) {
-        removeNotification(currentWeatherNotification);
-      }
-      
-      // Show new variable notification without auto-remove
-      const notificationId = showNotification(info, 'info', false);
-      setCurrentWeatherNotification(notificationId);
-    }
-  };
-
-  const hideVariableInfo = () => {
-    if (currentWeatherNotification) {
-      removeNotification(currentWeatherNotification);
-      setCurrentWeatherNotification(null);
-    }
-  };
-
-  // Add click handler to hide notifications when clicking anywhere outside variable items
-  const handleDocumentClick = (e) => {
-    // Only hide if clicking outside of variable items and preset buttons
-    if (!e.target.closest('.variable-item') && !e.target.closest('.preset-btn')) {
-      if (currentWeatherNotification) {
-        removeNotification(currentWeatherNotification);
-        setCurrentWeatherNotification(null);
-      }
-    }
-  };
-
-  // Add document click listener
-  React.useEffect(() => {
-    document.addEventListener('click', handleDocumentClick);
-    return () => {
-      document.removeEventListener('click', handleDocumentClick);
-    };
-  }, [currentWeatherNotification]);
-
-  // Validation functions for simulation parameters
-  const validateParameter = (param, value) => {
-    switch (param) {
-      case 'solverType':
-        return ['pimpleFoam', 'interFoam', 'rhoPimpleFoam'].includes(value);
-      case 'turbulenceModel':
-        return ['kEpsilon', 'kOmega', 'LES', 'DES'].includes(value);
-      case 'timeStep':
-        const ts = parseFloat(value);
-        return !isNaN(ts) && ts > 0 && ts <= 0.1;
-      case 'maxTime':
-        const mt = parseFloat(value);
-        return !isNaN(mt) && mt > 0 && mt <= 1000;
-      case 'temperature':
-        const temp = parseFloat(value);
-        return !isNaN(temp) && temp >= -50 && temp <= 50;
-      case 'pressure':
-        const press = parseFloat(value);
-        return !isNaN(press) && press >= 50000 && press <= 120000;
-      case 'windSpeed':
-        const ws = parseFloat(value);
-        return !isNaN(ws) && ws >= 0 && ws <= 100;
-      case 'windDirection':
-        const wd = parseFloat(value);
-        return !isNaN(wd) && wd >= 0 && wd < 360;
-      case 'humidity':
-        const hum = parseFloat(value);
-        return !isNaN(hum) && hum >= 0 && hum <= 100;
-      case 'domainSize':
-        const ds = parseFloat(value);
-        return !isNaN(ds) && ds >= 5 && ds <= 100;
-      case 'baseCellSize':
-        const cs = parseFloat(value);
-        return !isNaN(cs) && cs >= 0.001 && cs <= 0.1;
-      case 'meshQuality':
-        const mq = parseFloat(value);
-        return !isNaN(mq) && mq >= 0.1 && mq <= 1.0;
-      default:
-        return true;
-    }
-  };
-
-  const updateSimulationParameter = (param, value) => {
-    const isValid = validateParameter(param, value);
-    
-    setSimulationConfig(prev => ({
-      ...prev,
-      [param]: value
-    }));
-
-    // Show validation feedback
-    if (!isValid) {
-      showNotification(`Warning: ${param} value may be outside recommended range`, 'warning');
-    }
   };
 
   const addComponent = (type) => {
@@ -2475,36 +2310,24 @@ function App() {
                 <button 
                   className="preset-btn sunny" 
                   onClick={() => loadPresetConfig('sunny')}
-                  onMouseEnter={() => showWeatherInfo('sunny')}
-                  onMouseLeave={() => hideWeatherInfo()}
-                  title="Click to load sunny day configuration"
                 >
                   ☀️ Sunny Day
                 </button>
                 <button 
                   className="preset-btn rainy" 
                   onClick={() => loadPresetConfig('rainy')}
-                  onMouseEnter={() => showWeatherInfo('rainy')}
-                  onMouseLeave={() => hideWeatherInfo()}
-                  title="Click to load rainy day configuration"
                 >
                   🌧️ Rainy Day
                 </button>
                 <button 
                   className="preset-btn windy" 
                   onClick={() => loadPresetConfig('windy')}
-                  onMouseEnter={() => showWeatherInfo('windy')}
-                  onMouseLeave={() => hideWeatherInfo()}
-                  title="Click to load high wind configuration"
                 >
                   💨 High Wind
                 </button>
                 <button 
                   className="preset-btn stormy" 
                   onClick={() => loadPresetConfig('stormy')}
-                  onMouseEnter={() => showWeatherInfo('stormy')}
-                  onMouseLeave={() => hideWeatherInfo()}
-                  title="Click to load stormy weather configuration"
                 >
                   ⛈️ Stormy Weather
                 </button>
@@ -2533,33 +2356,35 @@ function App() {
               />
             </div>
             
-            {/* Current Simulation Variables - Ranked by Importance */}
-            <div className="current-variables">
-              <h3>Current Simulation Variables</h3>
-              <div className="variables-list">
-                {/* CRITICAL - Core Simulation Settings */}
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Solver: <span className="info-icon" onMouseEnter={() => showVariableInfo('solver')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+            {/* Editable Simulation Parameters */}
+            <div className="editable-parameters">
+              <h3>Simulation Parameters</h3>
+              <div className="parameters-grid">
+                
+                {/* CFD Solver Settings */}
+                <div className="parameter-group">
+                  <label>
+                    Solver Type
+                    <span className="info-icon" title="Choose the CFD solver: PIMPLE for compressible flows, InterFoam for multiphase flows, RhoPimpleFoam for density-based flows">ⓘ</span>
+                  </label>
                   <select 
-                    className={`variable-input ${validateParameter('solverType', simulationConfig.solverType) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.solverType}
-                    onChange={(e) => updateSimulationParameter('solverType', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('solver')}
-                    onMouseLeave={() => hideVariableInfo()}
+                    value={simulationConfig.solverType} 
+                    onChange={(e) => updateSimulationConfig('solverType', e.target.value)}
                   >
                     <option value="pimpleFoam">PIMPLE (Compressible)</option>
                     <option value="interFoam">InterFoam (Multiphase)</option>
                     <option value="rhoPimpleFoam">RhoPimpleFoam (Density-based)</option>
                   </select>
                 </div>
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Turbulence Model: <span className="info-icon" onMouseEnter={() => showVariableInfo('turbulenceModel')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Turbulence Model
+                    <span className="info-icon" title="Turbulence modeling: k-ε and k-ω for RANS, LES for large eddies, DES for detached eddies">ⓘ</span>
+                  </label>
                   <select 
-                    className={`variable-input ${validateParameter('turbulenceModel', simulationConfig.turbulenceModel) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.turbulenceModel}
-                    onChange={(e) => updateSimulationParameter('turbulenceModel', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('turbulenceModel')}
-                    onMouseLeave={() => hideVariableInfo()}
+                    value={simulationConfig.turbulenceModel} 
+                    onChange={(e) => updateSimulationConfig('turbulenceModel', e.target.value)}
                   >
                     <option value="kEpsilon">k-ε (RANS)</option>
                     <option value="kOmega">k-ω (RANS)</option>
@@ -2567,177 +2392,363 @@ function App() {
                     <option value="DES">Detached Eddy Simulation (DES)</option>
                   </select>
                 </div>
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Wall Condition: <span className="info-icon" onMouseEnter={() => showVariableInfo('wallCondition')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <select 
-                    className={`variable-input ${validateParameter('wallCondition', simulationConfig.wallCondition) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.wallCondition}
-                    onChange={(e) => updateSimulationParameter('wallCondition', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('wallCondition')}
-                    onMouseLeave={() => hideVariableInfo()}
-                  >
-                    <option value="noSlip">No-Slip</option>
-                    <option value="slip">Slip</option>
-                    <option value="partialSlip">Partial Slip</option>
-                  </select>
+
+                <div className="parameter-group">
+                  <label>
+                    Time Step (s)
+                    <span className="info-icon" title="Simulation time step - smaller values = more accurate but slower">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.timeStep} 
+                    onChange={(e) => updateSimulationConfig('timeStep', parseFloat(e.target.value))}
+                    step="0.001"
+                    min="0.0001"
+                    max="0.01"
+                  />
                 </div>
 
-                {/* HIGH - Time and Performance */}
-                <div className="variable-item priority-high">
-                  <span className="variable-label">Time Step: <span className="info-icon" onMouseEnter={() => showVariableInfo('timeStep')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                <div className="parameter-group">
+                  <label>
+                    Max Time (s)
+                    <span className="info-icon" title="Total simulation duration">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
-                    step="0.0001"
-                    className={`variable-input ${validateParameter('timeStep', simulationConfig.timeStep) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.timeStep}
-                    onChange={(e) => updateSimulationParameter('timeStep', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">s</span>
-                </div>
-                <div className="variable-item priority-high">
-                  <span className="variable-label">Max Time: <span className="info-icon" onMouseEnter={() => showVariableInfo('maxTime')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.maxTime} 
+                    onChange={(e) => updateSimulationConfig('maxTime', parseFloat(e.target.value))}
                     step="1"
-                    className={`variable-input ${validateParameter('maxTime', simulationConfig.maxTime) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.maxTime}
-                    onChange={(e) => updateSimulationParameter('maxTime', parseFloat(e.target.value))}
+                    min="1"
+                    max="300"
                   />
-                  <span className="unit">s</span>
                 </div>
 
-                {/* MEDIUM - Environmental Conditions */}
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Wind Speed: <span className="info-icon" onMouseEnter={() => showVariableInfo('windSpeed')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                <div className="parameter-group">
+                  <label>
+                    Write Interval
+                    <span className="info-icon" title="How often to save results (every N time steps)">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
-                    step="0.1"
-                    className={`variable-input ${validateParameter('windSpeed', simulationConfig.windSpeed) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.windSpeed}
-                    onChange={(e) => updateSimulationParameter('windSpeed', parseFloat(e.target.value))}
+                    type="number" 
+                    value={simulationConfig.writeInterval} 
+                    onChange={(e) => updateSimulationConfig('writeInterval', parseInt(e.target.value))}
+                    step="10"
+                    min="10"
+                    max="1000"
                   />
-                  <span className="unit">m/s</span>
-                </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Wind Direction: <span className="info-icon" onMouseEnter={() => showVariableInfo('windDirection')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="1"
-                    min="0"
-                    max="359"
-                    className={`variable-input ${validateParameter('windDirection', simulationConfig.windDirection) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.windDirection}
-                    onChange={(e) => updateSimulationParameter('windDirection', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">°</span>
-                </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Temperature: <span className="info-icon" onMouseEnter={() => showVariableInfo('temperature')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="0.1"
-                    className={`variable-input ${validateParameter('temperature', simulationConfig.temperature) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.temperature}
-                    onChange={(e) => updateSimulationParameter('temperature', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">°C</span>
-                </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Pressure: <span className="info-icon" onMouseEnter={() => showVariableInfo('pressure')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="100"
-                    className={`variable-input ${validateParameter('pressure', simulationConfig.pressure) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.pressure}
-                    onChange={(e) => updateSimulationParameter('pressure', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">Pa</span>
                 </div>
 
-                {/* LOW - Advanced Settings */}
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Inlet Velocity: <span className="info-icon" onMouseEnter={() => showVariableInfo('inletVelocity')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                {/* Atmospheric Conditions */}
+                <div className="parameter-group">
+                  <label>
+                    Temperature (°C)
+                    <span className="info-icon" title="Ambient air temperature">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.temperature} 
+                    onChange={(e) => updateSimulationConfig('temperature', parseFloat(e.target.value))}
                     step="0.1"
-                    className={`variable-input ${validateParameter('inletVelocity', simulationConfig.inletVelocity) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.inletVelocity}
-                    onChange={(e) => updateSimulationParameter('inletVelocity', parseFloat(e.target.value))}
+                    min="-50"
+                    max="50"
                   />
-                  <span className="unit">m/s</span>
                 </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Outlet Pressure: <span className="info-icon" onMouseEnter={() => showVariableInfo('outletPressure')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Pressure (Pa)
+                    <span className="info-icon" title="Atmospheric pressure at launch altitude">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.pressure} 
+                    onChange={(e) => updateSimulationConfig('pressure', parseFloat(e.target.value))}
                     step="100"
-                    className={`variable-input ${validateParameter('outletPressure', simulationConfig.outletPressure) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.outletPressure}
-                    onChange={(e) => updateSimulationParameter('outletPressure', parseFloat(e.target.value))}
+                    min="80000"
+                    max="120000"
                   />
-                  <span className="unit">Pa</span>
                 </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Humidity: <span className="info-icon" onMouseEnter={() => showVariableInfo('humidity')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Humidity (%)
+                    <span className="info-icon" title="Relative humidity of the air">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.humidity} 
+                    onChange={(e) => updateSimulationConfig('humidity', parseFloat(e.target.value))}
                     step="1"
                     min="0"
                     max="100"
-                    className={`variable-input ${validateParameter('humidity', simulationConfig.humidity) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.humidity}
-                    onChange={(e) => updateSimulationParameter('humidity', parseFloat(e.target.value))}
                   />
-                  <span className="unit">%</span>
                 </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Domain Size: <span className="info-icon" onMouseEnter={() => showVariableInfo('domainSize')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Wind Speed (m/s)
+                    <span className="info-icon" title="Wind velocity at launch site">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.windSpeed} 
+                    onChange={(e) => updateSimulationConfig('windSpeed', parseFloat(e.target.value))}
+                    step="0.1"
+                    min="0"
+                    max="50"
+                  />
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Wind Direction (°)
+                    <span className="info-icon" title="Wind direction: 0°=North, 90°=East, 180°=South, 270°=West">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.windDirection} 
+                    onChange={(e) => updateSimulationConfig('windDirection', parseFloat(e.target.value))}
                     step="1"
-                    className={`variable-input ${validateParameter('domainSize', simulationConfig.domainSize) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.domainSize}
-                    onChange={(e) => updateSimulationParameter('domainSize', parseFloat(e.target.value))}
+                    min="0"
+                    max="360"
                   />
-                  <span className="unit">m</span>
                 </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Cell Size: <span className="info-icon" onMouseEnter={() => showVariableInfo('cellSize')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Launch Altitude (m)
+                    <span className="info-icon" title="Elevation above sea level at launch site">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
+                    type="number" 
+                    value={simulationConfig.launchAltitude} 
+                    onChange={(e) => updateSimulationConfig('launchAltitude', parseFloat(e.target.value))}
+                    step="10"
+                    min="0"
+                    max="5000"
+                  />
+                </div>
+
+                {/* Boundary Conditions */}
+                <div className="parameter-group">
+                  <label>
+                    Inlet Velocity (m/s)
+                    <span className="info-icon" title="Inlet boundary velocity (usually 0 for static simulations)">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.inletVelocity} 
+                    onChange={(e) => updateSimulationConfig('inletVelocity', parseFloat(e.target.value))}
+                    step="0.1"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Outlet Pressure (Pa)
+                    <span className="info-icon" title="Pressure at outlet boundary">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.outletPressure} 
+                    onChange={(e) => updateSimulationConfig('outletPressure', parseFloat(e.target.value))}
+                    step="100"
+                    min="80000"
+                    max="120000"
+                  />
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Wall Condition
+                    <span className="info-icon" title="Wall boundary condition: noSlip (sticky), slip (smooth)">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.wallCondition} 
+                    onChange={(e) => updateSimulationConfig('wallCondition', e.target.value)}
+                  >
+                    <option value="noSlip">No Slip (Sticky)</option>
+                    <option value="slip">Slip (Smooth)</option>
+                    <option value="movingWall">Moving Wall</option>
+                  </select>
+                </div>
+
+                {/* Mesh Settings */}
+                <div className="parameter-group">
+                  <label>
+                    Domain Size (m)
+                    <span className="info-icon" title="Size of the computational domain around the rocket">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.domainSize} 
+                    onChange={(e) => updateSimulationConfig('domainSize', parseFloat(e.target.value))}
+                    step="1"
+                    min="5"
+                    max="50"
+                  />
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Base Cell Size (m)
+                    <span className="info-icon" title="Base mesh cell size - smaller = finer mesh but more computation">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.baseCellSize} 
+                    onChange={(e) => updateSimulationConfig('baseCellSize', parseFloat(e.target.value))}
                     step="0.001"
-                    className={`variable-input ${validateParameter('baseCellSize', simulationConfig.baseCellSize) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.baseCellSize}
-                    onChange={(e) => updateSimulationParameter('baseCellSize', parseFloat(e.target.value))}
+                    min="0.001"
+                    max="0.1"
                   />
-                  <span className="unit">m</span>
                 </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Mesh Quality: <span className="info-icon" onMouseEnter={() => showVariableInfo('meshQuality')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+
+                <div className="parameter-group">
+                  <label>
+                    Boundary Layer Cells
+                    <span className="info-icon" title="Number of cells in boundary layer for accurate wall modeling">ⓘ</span>
+                  </label>
                   <input 
-                    type="number"
-                    step="0.01"
-                    min="0.1"
-                    max="1.0"
-                    className={`variable-input ${validateParameter('meshQuality', simulationConfig.meshQuality) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.meshQuality}
-                    onChange={(e) => updateSimulationParameter('meshQuality', parseFloat(e.target.value))}
+                    type="number" 
+                    value={simulationConfig.boundaryLayerCells} 
+                    onChange={(e) => updateSimulationConfig('boundaryLayerCells', parseInt(e.target.value))}
+                    step="1"
+                    min="3"
+                    max="20"
                   />
                 </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Refinement Level
+                    <span className="info-icon" title="Mesh refinement: low=fast, medium=balanced, high=accurate">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.refinementLevel} 
+                    onChange={(e) => updateSimulationConfig('refinementLevel', e.target.value)}
+                  >
+                    <option value="low">Low (Fast)</option>
+                    <option value="medium">Medium (Balanced)</option>
+                    <option value="high">High (Accurate)</option>
+                  </select>
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Mesh Quality
+                    <span className="info-icon" title="Mesh quality threshold (0.1=high quality, 0.5=lower quality)">ⓘ</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    value={simulationConfig.meshQuality} 
+                    onChange={(e) => updateSimulationConfig('meshQuality', parseFloat(e.target.value))}
+                    step="0.05"
+                    min="0.1"
+                    max="0.8"
+                  />
+                </div>
+
+                {/* Analysis Options */}
+                <div className="parameter-group">
+                  <label>
+                    Calculate Drag
+                    <span className="info-icon" title="Calculate drag coefficient and forces">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.calculateDrag} 
+                    onChange={(e) => updateSimulationConfig('calculateDrag', e.target.value === 'true')}
+                  >
+                    <option value={true}>Yes</option>
+                    <option value={false}>No</option>
+                  </select>
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Calculate Lift
+                    <span className="info-icon" title="Calculate lift coefficient and forces">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.calculateLift} 
+                    onChange={(e) => updateSimulationConfig('calculateLift', e.target.value === 'true')}
+                  >
+                    <option value={true}>Yes</option>
+                    <option value={false}>No</option>
+                  </select>
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Calculate Pressure
+                    <span className="info-icon" title="Calculate pressure distribution on surfaces">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.calculatePressure} 
+                    onChange={(e) => updateSimulationConfig('calculatePressure', e.target.value === 'true')}
+                  >
+                    <option value={true}>Yes</option>
+                    <option value={false}>No</option>
+                  </select>
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Calculate Velocity
+                    <span className="info-icon" title="Calculate velocity field and flow patterns">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.calculateVelocity} 
+                    onChange={(e) => updateSimulationConfig('calculateVelocity', e.target.value === 'true')}
+                  >
+                    <option value={true}>Yes</option>
+                    <option value={false}>No</option>
+                  </select>
+                </div>
+
+                <div className="parameter-group">
+                  <label>
+                    Output Format
+                    <span className="info-icon" title="File format for results: VTK for ParaView, EnSight for commercial software">ⓘ</span>
+                  </label>
+                  <select 
+                    value={simulationConfig.outputFormat} 
+                    onChange={(e) => updateSimulationConfig('outputFormat', e.target.value)}
+                  >
+                    <option value="vtk">VTK (ParaView)</option>
+                    <option value="ensight">EnSight</option>
+                    <option value="foam">OpenFOAM Native</option>
+                  </select>
+                </div>
+
               </div>
             </div>
-            
-            <div className="simulation-sections">
-              {/* CFD Solver Settings */}
-              <div className="simulation-section">
-                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, cfd: !prev.cfd}))}>
-                  <h3>CFD Solver Settings</h3>
-                  <span className="toggle-icon">{openSections.cfd ? '▼' : '▶'}</span>
-                </div>
-                {openSections.cfd && (
-                  <div className="section-content">
-                    <div className="parameter-grid">
-                      <div className="parameter-group">
+
+          </div>
+        )}
+        
+        {activeTab === 'control' && (
+          <div className="tab-content">
+            <h2>Control Code</h2>
+            <p>Content will go here...</p>
+          </div>
+        )}
+        
+        {activeTab === 'results' && (
+          <div className="tab-content">
+            <h2>Results</h2>
+            <p>Content will go here...</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
                         <label>Solver Type:</label>
                         <select 
                           value={simulationConfig.solverType} 
@@ -2883,6 +2894,62 @@ function App() {
                 )}
               </div>
 
+              {/* Boundary Conditions */}
+              <div className="simulation-section">
+                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, boundaries: !prev.boundaries}))}>
+                  <h3>Boundary Conditions</h3>
+                  <span className="toggle-icon">{openSections.boundaries ? '▼' : '▶'}</span>
+                </div>
+                {openSections.boundaries && (
+                  <div className="section-content">
+                    <div className="parameter-grid">
+                      <div className="parameter-group">
+                        <label>Inlet Velocity (m/s):</label>
+                        <input 
+                          type="number" 
+                          value={simulationConfig.inletVelocity} 
+                          onChange={(e) => updateSimulationConfig('inletVelocity', parseFloat(e.target.value))}
+                          step="0.1"
+                          min="0"
+                        />
+                      </div>
+                      
+                      <div className="parameter-group">
+                        <label>Outlet Pressure (Pa):</label>
+                        <input 
+                          type="number" 
+                          value={simulationConfig.outletPressure} 
+                          onChange={(e) => updateSimulationConfig('outletPressure', parseFloat(e.target.value))}
+                          step="100"
+                        />
+                      </div>
+                      
+                      <div className="parameter-group">
+                        <label>Wall Condition:</label>
+                        <select 
+                          value={simulationConfig.wallCondition} 
+                          onChange={(e) => updateSimulationConfig('wallCondition', e.target.value)}
+                        >
+                          <option value="noSlip">No-Slip</option>
+                          <option value="slip">Slip</option>
+                          <option value="partialSlip">Partial Slip</option>
+                        </select>
+                      </div>
+                      
+                      <div className="parameter-group">
+                        <label>Domain Size (m):</label>
+                        <input 
+                          type="number" 
+                          value={simulationConfig.domainSize} 
+                          onChange={(e) => updateSimulationConfig('domainSize', parseFloat(e.target.value))}
+                          step="0.1"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Mesh Settings */}
               <div className="simulation-section">

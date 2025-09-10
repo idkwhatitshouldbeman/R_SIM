@@ -1602,6 +1602,11 @@ mergePatchPairs
 if __name__ == '__main__':
     # Ensure the database directory exists
     os.makedirs(os.path.join(os.path.dirname(__file__), 'database'), exist_ok=True)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    # Get port from environment variable (for Render deployment) or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    
+    app.run(host='0.0.0.0', port=port, debug=debug)
 
 

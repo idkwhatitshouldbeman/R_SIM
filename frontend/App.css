@@ -1,5 +1,310 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Using system fonts instead of Google Fonts */
+
+/* Custom Notification System */
+.notifications-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.notification {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  padding: 16px 20px;
+  min-width: 300px;
+  max-width: 400px;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translateX(100%);
+  animation: slideIn 0.3s ease-out forwards;
+  transition: all 0.3s ease;
+}
+
+.notification:hover {
+  transform: translateX(0) scale(1.02);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+}
+
+.notification-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.notification-success {
+  border-left: 4px solid #10b981;
+}
+
+.notification-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.notification-error {
+  border-left: 4px solid #ef4444;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notification-message {
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
+  white-space: pre-line;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.notification-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Weather Preset Buttons - Monochrome Grey Aesthetic */
+.preset-btn {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 2px solid #d1d5db;
+  color: #374151;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.preset-btn:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.preset-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Weather-specific subtle variations */
+.preset-btn.sunny {
+  border-color: #e5e7eb;
+}
+
+.preset-btn.rainy {
+  border-color: #d1d5db;
+}
+
+.preset-btn.windy {
+  border-color: #9ca3af;
+}
+
+.preset-btn.stormy {
+  border-color: #6b7280;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Current Variables Display */
+.current-variables {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.current-variables h3 {
+  color: var(--primary-color);
+  font-size: 1.4rem;
+  margin-bottom: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.variables-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.variable-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+/* Priority-based styling */
+.variable-item.priority-critical {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.variable-item.priority-high {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.variable-item.priority-medium {
+  border-left: 4px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.variable-item.priority-low {
+  border-left: 4px solid #6b7280;
+  background: rgba(107, 114, 128, 0.15);
+}
+
+.variable-label {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.variable-value {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 14px;
+  background-color: rgba(107, 76, 62, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Editable Variable Inputs */
+.variable-input {
+  padding: 8px 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  max-width: 140px;
+  cursor: pointer;
+}
+
+/* Dropdown specific styling */
+.variable-input select,
+select.variable-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.variable-input select:focus,
+select.variable-input:focus {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b4c3e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+.variable-input:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.variable-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(107, 76, 62, 0.2);
+  transform: translateY(-1px);
+}
+
+.variable-input.valid {
+  border-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.variable-input.valid:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.variable-input.invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.variable-input.invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.unit {
+  font-size: 12px;
+  color: var(--secondary-color);
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: help;
+  transition: all 0.2s ease;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.info-icon:hover {
+  background-color: #8b4513;
+  transform: scale(1.1);
+}
 
 :root {
   --background-color: #f5f5dc;
@@ -15,7 +320,7 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   background-color: var(--background-color);
   color: var(--text-color);
   min-height: 100vh;
@@ -770,7 +1075,7 @@ body {
   cursor: pointer;
 }
 
-.config-field select[data-material="true"] {
+.config-field select {
   width: 140px;
 }
 
