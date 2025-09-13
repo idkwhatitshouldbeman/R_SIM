@@ -1462,10 +1462,18 @@ def stop_simulation():
 @app.route("/api/health", methods=["GET"])
 def health_check():
     """Health check endpoint for Render deployment"""
+    # Handle different manager types
+    if hasattr(openfoam_manager, 'get_status'):
+        # HeavyCFDManager has get_status method
+        openfoam_status = openfoam_manager.get_status()
+    else:
+        # GCPCFDClient doesn't have get_status, use a simple status
+        openfoam_status = {"status": "cloud_cfd_available", "type": "gcp"}
+    
     return jsonify({
         "status": "healthy",
         "heavy_cfd_available": heavy_cfd_available,
-        "openfoam_status": openfoam_manager.get_status()
+        "openfoam_status": openfoam_status
     })
 
 @app.route('/', defaults={'path': ''})

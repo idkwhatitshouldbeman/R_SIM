@@ -20,11 +20,11 @@ function App() {
   
   // Simulation state
   const [openSections, setOpenSections] = useState({
-    cfd: false,
-    atmosphere: false,
-    boundaries: false,
-    mesh: false,
-    analysis: false
+    cfd: true,
+    atmosphere: true,
+    boundaries: true,
+    mesh: true,
+    analysis: true
   });
   
   const [simulationConfig, setSimulationConfig] = useState({
@@ -60,7 +60,18 @@ function App() {
     calculateLift: true,
     calculatePressure: true,
     calculateVelocity: true,
-    outputFormat: 'vtk'
+    outputFormat: 'vtk',
+    
+    // Active Fin Control Settings
+    activeFinControl: 'disabled',
+    cfdTimeStep: 0.01,
+    controlUpdateRate: 100,
+    finDeflectionLimit: 15, // degrees
+    controlGains: {
+      kp: 1.0,  // Proportional gain
+      ki: 0.1,  // Integral gain
+      kd: 0.05  // Derivative gain
+    }
   });
   
   const [simulationRunning, setSimulationRunning] = useState(false);
@@ -1016,6 +1027,88 @@ function App() {
     }));
   };
 
+  // Active Fin Control API Functions
+  const updateActiveFinControlConfig = async (configData) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/active-fin-control/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData)
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Active fin control config updated');
+      } else {
+        console.error('Failed to update config:', result.error);
+      }
+    } catch (error) {
+      console.error('Error updating active fin control config:', error);
+    }
+  };
+
+  const startActiveFinControl = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/active-fin-control/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Active fin control started');
+      } else {
+        console.error('Failed to start active fin control:', result.error);
+      }
+    } catch (error) {
+      console.error('Error starting active fin control:', error);
+    }
+  };
+
+  const stopActiveFinControl = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/active-fin-control/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Active fin control stopped');
+      } else {
+        console.error('Failed to stop active fin control:', result.error);
+      }
+    } catch (error) {
+      console.error('Error stopping active fin control:', error);
+    }
+  };
+
+  const testControlAlgorithm = async (testData) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/active-fin-control/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testData)
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Control algorithm test result:', result.fin_deflections);
+        return result.fin_deflections;
+      } else {
+        console.error('Failed to test control algorithm:', result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error testing control algorithm:', error);
+      return null;
+    }
+  };
+
   const startSimulation = async () => {
     setSimulationRunning(true);
     setSimulationStatus({
@@ -1801,111 +1894,85 @@ function App() {
 
       <main className="main-content">
         {activeTab === 'simulation' && (
-          <div className="simulation-run-layout">
-            <div className="simulation-header">
-              <h2>🚀 Ready to Launch Your Simulation!</h2>
-              <p>Your rocket is configured and ready for CFD analysis. Click the button below to start the OpenFOAM simulation.</p>
-            </div>
-            
-            <div className="simulation-controls">
-              <div className="control-panel">
-                <h3>Simulation Status</h3>
-                <div className="status-indicator">
-                  {simulationRunning ? (
-                    <div className="running">
-                      <span className="status-dot running"></span>
-                      Simulation Running...
+          <div className="simulation-run-container">
+            {!simulationRunning ? (
+              <div className="simulation-ready">
+                <div className="launch-header">
+                  <h1>🚀 Ready to Launch</h1>
+                  <p>Your rocket is configured and ready for CFD analysis</p>
+                </div>
+                
+                <button 
+                  className="launch-button"
+                  onClick={startSimulation}
+                >
+                  <span className="button-icon">🚀</span>
+                  <span className="button-text">Start Simulation</span>
+                </button>
+                
+                <div className="simulation-info">
+                  <div className="info-item">
+                    <span className="info-icon">⏱️</span>
+                    <span>Expected duration: 5-15 minutes</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-icon">🔬</span>
+                    <span>OpenFOAM CFD analysis with active fin control</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="simulation-running">
+                <div className="loading-animation">
+                  <div className="rocket-loader">
+                    <div className="rocket">🚀</div>
+                    <div className="trail"></div>
+                  </div>
+                </div>
+                
+                <div className="simulation-status">
+                  <h2>{simulationStatus?.status || 'Initializing...'}</h2>
+                  <p>{simulationStatus?.message || 'Setting up simulation environment...'}</p>
+                </div>
+                
+                <div className="progress-container">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{ width: `${simulationStatus?.progress || 0}%` }}
+                    ></div>
+                  </div>
+                  <div className="progress-text">
+                    {simulationStatus?.progress || 0}% Complete
+                  </div>
+                </div>
+                
+                <div className="simulation-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className="detail-value">{simulationStatus?.status || 'Initializing'}</span>
+                  </div>
+                  {simulationStatus?.iteration_count && (
+                    <div className="detail-item">
+                      <span className="detail-label">Iterations:</span>
+                      <span className="detail-value">{simulationStatus.iteration_count}</span>
                     </div>
-                  ) : (
-                    <div className="ready">
-                      <span className="status-dot ready"></span>
-                      Ready to Run
+                  )}
+                  {simulationStatus?.cell_count && (
+                    <div className="detail-item">
+                      <span className="detail-label">Mesh Cells:</span>
+                      <span className="detail-value">{simulationStatus.cell_count.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
                 
-                <div className="action-buttons">
-                  {!simulationRunning ? (
-                    <button 
-                      className="btn-primary"
-                      onClick={startSimulation}
-                      disabled={simulationRunning}
-                    >
-                      🚀 Start Simulation
-                    </button>
-                  ) : (
-                    <button 
-                      className="btn-secondary"
-                      onClick={stopSimulation}
-                      disabled={!simulationRunning}
-                    >
-                      ⏹️ Stop Simulation
-                    </button>
-                  )}
-                  
-                  <button 
-                    className="btn-secondary"
-                    onClick={generateMesh}
-                    disabled={simulationRunning}
-                  >
-                    🔧 Generate Mesh
-                  </button>
-                </div>
-              </div>
-              
-              <div className="progress-panel">
-                <h3>Progress</h3>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: simulationRunning ? '45%' : '0%' }}></div>
-                </div>
-                <div className="progress-text">
-                  {simulationRunning ? 'Mesh generation and solver running...' : 'Click Start to begin'}
-                </div>
-              </div>
-            </div>
-            
-            <div className="simulation-info">
-              <div className="info-card">
-                <h4>📊 What This Will Do</h4>
-                <ul>
-                  <li>Generate computational mesh from your rocket design</li>
-                  <li>Run OpenFOAM LES simulation with compressible flow</li>
-                  <li>Calculate aerodynamic forces and pressure distribution</li>
-                  <li>Analyze flight characteristics and stability</li>
-                  <li>Support active control systems (fins, thrust vectoring)</li>
-                </ul>
-              </div>
-              
-              <div className="info-card">
-                <h4>⏱️ Expected Duration</h4>
-                <p>Based on your configuration, this simulation should complete in approximately <strong>5-15 minutes</strong> depending on mesh complexity and solver settings.</p>
-              </div>
-            </div>
-            
-            {/* Simulation Status Display */}
-            {simulationStatus && (
-              <div className="simulation-status-display">
-                <h3>📊 Live Simulation Status</h3>
-                <div className="status-content">
-                  <div className="status-item">
-                    <strong>Status:</strong> {simulationStatus.status}
-                  </div>
-                  {simulationStatus.progress && (
-                    <div className="status-item">
-                      <strong>Progress:</strong> {simulationStatus.progress}%
-                    </div>
-                  )}
-                  {simulationStatus.currentTime && (
-                    <div className="status-item">
-                      <strong>Current Time:</strong> {simulationStatus.currentTime}s
-                    </div>
-                  )}
-                  {simulationStatus.message && (
-                    <div className="status-item">
-                      <strong>Message:</strong> {simulationStatus.message}
-                    </div>
-                  )}
-                </div>
+                <button 
+                  className="stop-button"
+                  onClick={stopSimulation}
+                >
+                  <span className="button-icon">⏹️</span>
+                  <span className="button-text">Stop Simulation</span>
+                </button>
               </div>
             )}
           </div>
@@ -2533,211 +2600,71 @@ function App() {
               />
             </div>
             
-            {/* Current Simulation Variables - Ranked by Importance */}
-            <div className="current-variables">
-              <h3>Current Simulation Variables</h3>
-              <div className="variables-list">
-                {/* CRITICAL - Core Simulation Settings */}
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Solver: <span className="info-icon" onMouseEnter={() => showVariableInfo('solver')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <select 
-                    className={`variable-input ${validateParameter('solverType', simulationConfig.solverType) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.solverType}
-                    onChange={(e) => updateSimulationParameter('solverType', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('solver')}
-                    onMouseLeave={() => hideVariableInfo()}
-                  >
-                    <option value="pimpleFoam">PIMPLE (Compressible)</option>
-                    <option value="interFoam">InterFoam (Multiphase)</option>
-                    <option value="rhoPimpleFoam">RhoPimpleFoam (Density-based)</option>
-                  </select>
-                </div>
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Turbulence Model: <span className="info-icon" onMouseEnter={() => showVariableInfo('turbulenceModel')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <select 
-                    className={`variable-input ${validateParameter('turbulenceModel', simulationConfig.turbulenceModel) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.turbulenceModel}
-                    onChange={(e) => updateSimulationParameter('turbulenceModel', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('turbulenceModel')}
-                    onMouseLeave={() => hideVariableInfo()}
-                  >
-                    <option value="kEpsilon">k-ε (RANS)</option>
-                    <option value="kOmega">k-ω (RANS)</option>
-                    <option value="LES">Large Eddy Simulation (LES)</option>
-                    <option value="DES">Detached Eddy Simulation (DES)</option>
-                  </select>
-                </div>
-                <div className="variable-item priority-critical">
-                  <span className="variable-label">Wall Condition: <span className="info-icon" onMouseEnter={() => showVariableInfo('wallCondition')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <select 
-                    className={`variable-input ${validateParameter('wallCondition', simulationConfig.wallCondition) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.wallCondition}
-                    onChange={(e) => updateSimulationParameter('wallCondition', e.target.value)}
-                    onMouseEnter={() => showVariableInfo('wallCondition')}
-                    onMouseLeave={() => hideVariableInfo()}
-                  >
-                    <option value="noSlip">No-Slip</option>
-                    <option value="slip">Slip</option>
-                    <option value="partialSlip">Partial Slip</option>
-                  </select>
+            {/* Frequently Changed Variables */}
+            <div className="frequent-variables">
+              <h3>Frequent Variables</h3>
+              <div className="variables-grid">
+                <div className="variable-group">
+                  <label>Launch Altitude (m):</label>
+                  <input 
+                    type="number"
+                    value={simulationConfig.launchAltitude} 
+                    onChange={(e) => updateSimulationConfig('launchAltitude', parseFloat(e.target.value))}
+                    step="10"
+                    min="0"
+                    max="10000"
+                  />
                 </div>
 
-                {/* HIGH - Time and Performance */}
-                <div className="variable-item priority-high">
-                  <span className="variable-label">Time Step: <span className="info-icon" onMouseEnter={() => showVariableInfo('timeStep')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                <div className="variable-group">
+                  <label>Wind Speed (m/s):</label>
                   <input 
                     type="number"
-                    step="0.0001"
-                    className={`variable-input ${validateParameter('timeStep', simulationConfig.timeStep) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.timeStep}
-                    onChange={(e) => updateSimulationParameter('timeStep', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">s</span>
-                </div>
-                <div className="variable-item priority-high">
-                  <span className="variable-label">Max Time: <span className="info-icon" onMouseEnter={() => showVariableInfo('maxTime')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="1"
-                    className={`variable-input ${validateParameter('maxTime', simulationConfig.maxTime) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.maxTime}
-                    onChange={(e) => updateSimulationParameter('maxTime', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">s</span>
-                </div>
-
-                {/* MEDIUM - Environmental Conditions */}
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Wind Speed: <span className="info-icon" onMouseEnter={() => showVariableInfo('windSpeed')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="0.1"
-                    className={`variable-input ${validateParameter('windSpeed', simulationConfig.windSpeed) ? 'valid' : 'invalid'}`}
                     value={simulationConfig.windSpeed}
-                    onChange={(e) => updateSimulationParameter('windSpeed', parseFloat(e.target.value))}
+                    onChange={(e) => updateSimulationConfig('windSpeed', parseFloat(e.target.value))}
+                    step="0.1"
+                    min="0"
+                    max="50"
                   />
-                  <span className="unit">m/s</span>
                 </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Wind Direction: <span className="info-icon" onMouseEnter={() => showVariableInfo('windDirection')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                
+                <div className="variable-group">
+                  <label>Wind Direction (°):</label>
                   <input 
                     type="number"
+                    value={simulationConfig.windDirection} 
+                    onChange={(e) => updateSimulationConfig('windDirection', parseFloat(e.target.value))}
                     step="1"
                     min="0"
-                    max="359"
-                    className={`variable-input ${validateParameter('windDirection', simulationConfig.windDirection) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.windDirection}
-                    onChange={(e) => updateSimulationParameter('windDirection', parseFloat(e.target.value))}
+                    max="360"
                   />
-                  <span className="unit">°</span>
                 </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Temperature: <span className="info-icon" onMouseEnter={() => showVariableInfo('temperature')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                
+                <div className="variable-group">
+                  <label>Temperature (°C):</label>
                   <input 
                     type="number"
-                    step="0.1"
-                    className={`variable-input ${validateParameter('temperature', simulationConfig.temperature) ? 'valid' : 'invalid'}`}
                     value={simulationConfig.temperature}
-                    onChange={(e) => updateSimulationParameter('temperature', parseFloat(e.target.value))}
+                    onChange={(e) => updateSimulationConfig('temperature', parseFloat(e.target.value))}
+                    step="0.1"
+                    min="-50"
+                    max="50"
                   />
-                  <span className="unit">°C</span>
-                </div>
-                <div className="variable-item priority-medium">
-                  <span className="variable-label">Pressure: <span className="info-icon" onMouseEnter={() => showVariableInfo('pressure')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="100"
-                    className={`variable-input ${validateParameter('pressure', simulationConfig.pressure) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.pressure}
-                    onChange={(e) => updateSimulationParameter('pressure', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">Pa</span>
                 </div>
 
-                {/* LOW - Advanced Settings */}
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Inlet Velocity: <span className="info-icon" onMouseEnter={() => showVariableInfo('inletVelocity')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
+                <div className="variable-group">
+                  <label>Humidity (%):</label>
                   <input 
                     type="number"
-                    step="0.1"
-                    className={`variable-input ${validateParameter('inletVelocity', simulationConfig.inletVelocity) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.inletVelocity}
-                    onChange={(e) => updateSimulationParameter('inletVelocity', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">m/s</span>
-                </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Outlet Pressure: <span className="info-icon" onMouseEnter={() => showVariableInfo('outletPressure')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="100"
-                    className={`variable-input ${validateParameter('outletPressure', simulationConfig.outletPressure) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.outletPressure}
-                    onChange={(e) => updateSimulationParameter('outletPressure', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">Pa</span>
-                </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Humidity: <span className="info-icon" onMouseEnter={() => showVariableInfo('humidity')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
+                    value={simulationConfig.humidity} 
+                    onChange={(e) => updateSimulationConfig('humidity', parseFloat(e.target.value))}
                     step="1"
                     min="0"
                     max="100"
-                    className={`variable-input ${validateParameter('humidity', simulationConfig.humidity) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.humidity}
-                    onChange={(e) => updateSimulationParameter('humidity', parseFloat(e.target.value))}
                   />
-                  <span className="unit">%</span>
-                </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Domain Size: <span className="info-icon" onMouseEnter={() => showVariableInfo('domainSize')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="1"
-                    className={`variable-input ${validateParameter('domainSize', simulationConfig.domainSize) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.domainSize}
-                    onChange={(e) => updateSimulationParameter('domainSize', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">m</span>
-                </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Cell Size: <span className="info-icon" onMouseEnter={() => showVariableInfo('cellSize')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="0.001"
-                    className={`variable-input ${validateParameter('baseCellSize', simulationConfig.baseCellSize) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.baseCellSize}
-                    onChange={(e) => updateSimulationParameter('baseCellSize', parseFloat(e.target.value))}
-                  />
-                  <span className="unit">m</span>
-                </div>
-                <div className="variable-item priority-low">
-                  <span className="variable-label">Mesh Quality: <span className="info-icon" onMouseEnter={() => showVariableInfo('meshQuality')} onMouseLeave={() => hideVariableInfo()}>ℹ️</span></span>
-                  <input 
-                    type="number"
-                    step="0.01"
-                    min="0.1"
-                    max="1.0"
-                    className={`variable-input ${validateParameter('meshQuality', simulationConfig.meshQuality) ? 'valid' : 'invalid'}`}
-                    value={simulationConfig.meshQuality}
-                    onChange={(e) => updateSimulationParameter('meshQuality', parseFloat(e.target.value))}
-                  />
-                </div>
-              </div>
             </div>
             
-            <div className="simulation-sections">
-              {/* CFD Solver Settings */}
-              <div className="simulation-section">
-                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, cfd: !prev.cfd}))}>
-                  <h3>CFD Solver Settings</h3>
-                  <span className="toggle-icon">{openSections.cfd ? '▼' : '▶'}</span>
-                </div>
-                {openSections.cfd && (
-                  <div className="section-content">
-                    <div className="parameter-grid">
-                      <div className="parameter-group">
+                <div className="variable-group">
                         <label>Solver Type:</label>
                         <select 
                           value={simulationConfig.solverType} 
@@ -2746,282 +2673,453 @@ function App() {
                           <option value="pimpleFoam">PIMPLE (Compressible)</option>
                           <option value="interFoam">InterFoam (Multiphase)</option>
                           <option value="rhoPimpleFoam">RhoPimpleFoam (Density-based)</option>
+                    <option value="simpleFoam">SIMPLE (Steady-state)</option>
                         </select>
                       </div>
                       
-                      <div className="parameter-group">
-                        <label>Turbulence Model:</label>
+                <div className="variable-group">
+                  <label>Active Fin Control:</label>
                         <select 
-                          value={simulationConfig.turbulenceModel} 
-                          onChange={(e) => updateSimulationConfig('turbulenceModel', e.target.value)}
-                        >
-                          <option value="kEpsilon">k-ε (RANS)</option>
-                          <option value="kOmega">k-ω (RANS)</option>
-                          <option value="LES">Large Eddy Simulation (LES)</option>
-                          <option value="DES">Detached Eddy Simulation (DES)</option>
+                    value={simulationConfig.activeFinControl} 
+                    onChange={(e) => updateSimulationConfig('activeFinControl', e.target.value)}
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="test">Test Mode</option>
                         </select>
                       </div>
                       
-                      <div className="parameter-group">
-                        <label>Time Step (s):</label>
+                <div className="variable-group">
+                  <label>CFD Time Step (s):</label>
                         <input 
                           type="number" 
-                          value={simulationConfig.timeStep} 
-                          onChange={(e) => updateSimulationConfig('timeStep', parseFloat(e.target.value))}
+                    value={simulationConfig.cfdTimeStep} 
+                    onChange={(e) => updateSimulationConfig('cfdTimeStep', parseFloat(e.target.value))}
                           step="0.001"
                           min="0.001"
+                    max="0.1"
                         />
                       </div>
                       
-                      <div className="parameter-group">
-                        <label>Max Simulation Time (s):</label>
+                <div className="variable-group">
+                  <label>Control Update Rate (Hz):</label>
                         <input 
                           type="number" 
-                          value={simulationConfig.maxTime} 
-                          onChange={(e) => updateSimulationConfig('maxTime', parseFloat(e.target.value))}
+                    value={simulationConfig.controlUpdateRate} 
+                    onChange={(e) => updateSimulationConfig('controlUpdateRate', parseInt(e.target.value))}
                           step="1"
                           min="1"
+                    max="1000"
                         />
                       </div>
-                      
-                      <div className="parameter-group">
-                        <label>Write Interval:</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.writeInterval} 
-                          onChange={(e) => updateSimulationConfig('writeInterval', parseInt(e.target.value))}
-                          step="1"
-                          min="1"
-                        />
                       </div>
                     </div>
+
                   </div>
                 )}
-              </div>
-
-              {/* Atmospheric Conditions */}
-              <div className="simulation-section">
-                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, atmosphere: !prev.atmosphere}))}>
-                  <h3>Atmospheric Conditions</h3>
-                  <span className="toggle-icon">{openSections.atmosphere ? '▼' : '▶'}</span>
-                </div>
-                {openSections.atmosphere && (
-                  <div className="section-content">
-                    <div className="parameter-grid">
-                      <div className="parameter-group">
-                        <label>Launch Altitude (m):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.launchAltitude} 
-                          onChange={(e) => updateSimulationConfig('launchAltitude', parseFloat(e.target.value))}
-                          step="1"
-                          min="0"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Temperature (°C):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.temperature} 
-                          onChange={(e) => updateSimulationConfig('temperature', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="-50"
-                          max="50"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Pressure (Pa):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.pressure} 
-                          onChange={(e) => updateSimulationConfig('pressure', parseFloat(e.target.value))}
-                          step="100"
-                          min="10000"
-                          max="150000"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Humidity (%):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.humidity} 
-                          onChange={(e) => updateSimulationConfig('humidity', parseFloat(e.target.value))}
-                          step="1"
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Wind Speed (m/s):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.windSpeed} 
-                          onChange={(e) => updateSimulationConfig('windSpeed', parseFloat(e.target.value))}
-                          step="0.1"
-                          min="0"
-                          max="50"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Wind Direction (°):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.windDirection} 
-                          onChange={(e) => updateSimulationConfig('windDirection', parseFloat(e.target.value))}
-                          step="1"
-                          min="0"
-                          max="360"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-
-              {/* Mesh Settings */}
-              <div className="simulation-section">
-                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, mesh: !prev.mesh}))}>
-                  <h3>Mesh Generation</h3>
-                  <span className="toggle-icon">{openSections.mesh ? '▼' : '▶'}</span>
-                </div>
-                {openSections.mesh && (
-                  <div className="section-content">
-                    <div className="parameter-grid">
-                      <div className="parameter-group">
-                        <label>Base Cell Size (m):</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.baseCellSize} 
-                          onChange={(e) => updateSimulationConfig('baseCellSize', parseFloat(e.target.value))}
-                          step="0.001"
-                          min="0.001"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Boundary Layer Cells:</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.boundaryLayerCells} 
-                          onChange={(e) => updateSimulationConfig('boundaryLayerCells', parseInt(e.target.value))}
-                          step="1"
-                          min="3"
-                          max="20"
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Refinement Level:</label>
-                        <select 
-                          value={simulationConfig.refinementLevel} 
-                          onChange={(e) => updateSimulationConfig('refinementLevel', e.target.value)}
-                        >
-                          <option value="coarse">Coarse</option>
-                          <option value="medium">Medium</option>
-                          <option value="fine">Fine</option>
-                          <option value="veryFine">Very Fine</option>
-                        </select>
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Mesh Quality Threshold:</label>
-                        <input 
-                          type="number" 
-                          value={simulationConfig.meshQuality} 
-                          onChange={(e) => updateSimulationConfig('meshQuality', parseFloat(e.target.value))}
-                          step="0.01"
-                          min="0.1"
-                          max="1.0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Analysis Settings */}
-              <div className="simulation-section">
-                <div className="section-header" onClick={() => setOpenSections(prev => ({...prev, analysis: !prev.analysis}))}>
-                  <h3>Analysis & Output</h3>
-                  <span className="toggle-icon">{openSections.analysis ? '▼' : '▶'}</span>
-                </div>
-                {openSections.analysis && (
-                  <div className="section-content">
-                    <div className="parameter-grid">
-                      <div className="parameter-group">
-                        <label>Calculate Drag Coefficient:</label>
-                        <input 
-                          type="checkbox" 
-                          checked={simulationConfig.calculateDrag} 
-                          onChange={(e) => updateSimulationConfig('calculateDrag', e.target.checked)}
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Calculate Lift Coefficient:</label>
-                        <input 
-                          type="checkbox" 
-                          checked={simulationConfig.calculateLift} 
-                          onChange={(e) => updateSimulationConfig('calculateLift', e.target.checked)}
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Calculate Pressure Distribution:</label>
-                        <input 
-                          type="checkbox" 
-                          checked={simulationConfig.calculatePressure} 
-                          onChange={(e) => updateSimulationConfig('calculatePressure', e.target.checked)}
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Calculate Velocity Field:</label>
-                        <input 
-                          type="checkbox" 
-                          checked={simulationConfig.calculateVelocity} 
-                          onChange={(e) => updateSimulationConfig('calculateVelocity', e.target.checked)}
-                        />
-                      </div>
-                      
-                      <div className="parameter-group">
-                        <label>Output Format:</label>
-                        <select 
-                          value={simulationConfig.outputFormat} 
-                          onChange={(e) => updateSimulationConfig('outputFormat', e.target.value)}
-                        >
-                          <option value="vtk">VTK</option>
-                          <option value="ensight">EnSight</option>
-                          <option value="foam">OpenFOAM Native</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-
-          </div>
-        )}
         
         {activeTab === 'control' && (
           <div className="tab-content">
-            <h2>Control Code</h2>
+            <h2>Active Fin Control System</h2>
+            
+            {/* Control System Status */}
+            <div className="control-status">
+              <div className="status-indicator">
+                <span className={`status-dot ${simulationConfig.activeFinControl === 'enabled' ? 'active' : 'inactive'}`}></span>
+                <span>Control System: {simulationConfig.activeFinControl === 'enabled' ? 'ACTIVE' : 'INACTIVE'}</span>
+                </div>
+              <div className="control-params">
+                <span>Update Rate: {simulationConfig.controlUpdateRate} Hz</span>
+                <span>CFD Time Step: {simulationConfig.cfdTimeStep}s</span>
+                <span>Fin Limit: ±{simulationConfig.finDeflectionLimit}°</span>
+                      </div>
+                      </div>
+                      
+            {/* Control Code Editor */}
+            <div className="control-code-section">
+              <h3>Control Algorithm</h3>
+              <div className="code-editor-container">
+                <textarea
+                  className="control-code-editor"
+                  placeholder="// Active Fin Control Algorithm
+// This code runs in real-time during CFD simulation
+// Available variables: attitude, velocity, position, target_trajectory
+// Output: fin_deflections (array of 4 fin angles in degrees)
+
+function calculateFinDeflections(cfdData, targetTrajectory) {
+    // Extract CFD feedback data
+    const attitude = cfdData.attitude;        // [roll, pitch, yaw] in degrees
+    const velocity = cfdData.velocity;        // [vx, vy, vz] in m/s
+    const position = cfdData.position;        // [x, y, z] in meters
+    const angularVelocity = cfdData.angularVelocity; // [wx, wy, wz] in rad/s
+    
+    // Target trajectory
+    const targetPitch = targetTrajectory.pitch;
+    const targetYaw = targetTrajectory.yaw;
+    
+    // Control gains
+    const kp = 1.0;  // Proportional gain
+    const ki = 0.1;  // Integral gain  
+    const kd = 0.05; // Derivative gain
+    
+    // Calculate errors
+    const pitchError = targetPitch - attitude[1];
+    const yawError = targetYaw - attitude[2];
+    
+    // PID control for pitch (fins 1&3)
+    const pitchControl = kp * pitchError + ki * integralError + kd * derivativeError;
+    
+    // PID control for yaw (fins 2&4)  
+    const yawControl = kp * yawError + ki * integralError + kd * derivativeError;
+    
+    // Calculate fin deflections (4 fins)
+    const finDeflections = [
+        pitchControl,  // Fin 1 (top)
+        yawControl,    // Fin 2 (right)
+        -pitchControl, // Fin 3 (bottom) 
+        -yawControl    // Fin 4 (left)
+    ];
+    
+    // Apply deflection limits
+    const maxDeflection = 15; // degrees
+    for (let i = 0; i < finDeflections.length; i++) {
+        finDeflections[i] = Math.max(-maxDeflection, Math.min(maxDeflection, finDeflections[i]));
+    }
+    
+    return finDeflections;
+}"
+                  rows={25}
+                  cols={80}
+                        />
+                      </div>
+                      
+              <div className="control-actions">
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => updateActiveFinControlConfig(simulationConfig)}
+                >
+                  Save Control Code
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => testControlAlgorithm({
+                    attitude: [0, 5, 0], // 5 degree pitch error
+                    velocity: [0, 0, 0],
+                    position: [0, 0, 0],
+                    angular_velocity: [0, 0, 0],
+                    target_trajectory: {pitch: 0, yaw: 0}
+                  })}
+                >
+                  Test Algorithm
+                </button>
+                <button 
+                  className="btn btn-success"
+                  onClick={startActiveFinControl}
+                >
+                  Start Co-Simulation
+                </button>
+                      </div>
+                      </div>
+                      
+            {/* Real-time Feedback Display */}
+            <div className="feedback-display">
+              <h3>Real-time CFD Feedback</h3>
+              <div className="feedback-grid">
+                <div className="feedback-item">
+                  <label>Attitude (deg):</label>
+                  <span id="attitude-display">Roll: 0.0, Pitch: 0.0, Yaw: 0.0</span>
+                      </div>
+                <div className="feedback-item">
+                  <label>Velocity (m/s):</label>
+                  <span id="velocity-display">Vx: 0.0, Vy: 0.0, Vz: 0.0</span>
+                      </div>
+                <div className="feedback-item">
+                  <label>Fin Deflections (deg):</label>
+                  <span id="fin-display">Fin1: 0.0, Fin2: 0.0, Fin3: 0.0, Fin4: 0.0</span>
+                    </div>
+                <div className="feedback-item">
+                  <label>Control Error:</label>
+                  <span id="error-display">Pitch: 0.0°, Yaw: 0.0°</span>
+                  </div>
+              </div>
+            </div>
             <p>Content will go here...</p>
           </div>
         )}
         
         {activeTab === 'results' && (
-          <div className="tab-content">
-            <h2>Results</h2>
-            <p>Content will go here...</p>
+          <div className="results-container">
+            <div className="results-header">
+              <h1>📊 Simulation Results</h1>
+              <p>Analysis and visualization of your rocket's performance</p>
+            </div>
+
+            <div className="results-grid">
+              {/* Performance Overview */}
+              <div className="results-section performance-overview">
+                <div className="section-header">
+                  <h2>🚀 Performance Overview</h2>
+                  <div className="section-status">
+                    <span className="status-indicator">Ready</span>
+                  </div>
+                </div>
+                <div className="performance-metrics">
+                  <div className="metric-card">
+                    <div className="metric-icon">📈</div>
+                    <div className="metric-content">
+                      <h3>Max Altitude</h3>
+                      <div className="metric-value">-- m</div>
+                      <div className="metric-label">Peak height achieved</div>
+                    </div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-icon">⚡</div>
+                    <div className="metric-content">
+                      <h3>Max Velocity</h3>
+                      <div className="metric-value">-- m/s</div>
+                      <div className="metric-label">Peak speed reached</div>
+                    </div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-icon">🎯</div>
+                    <div className="metric-content">
+                      <h3>Stability</h3>
+                      <div className="metric-value">--</div>
+                      <div className="metric-label">Flight stability rating</div>
+                    </div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-icon">⏱️</div>
+                    <div className="metric-content">
+                      <h3>Flight Time</h3>
+                      <div className="metric-value">-- s</div>
+                      <div className="metric-label">Total flight duration</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Aerodynamic Analysis */}
+              <div className="results-section aerodynamic-analysis">
+                <div className="section-header">
+                  <h2>🌪️ Aerodynamic Analysis</h2>
+                  <div className="section-actions">
+                    <button className="action-btn">Export Data</button>
+                  </div>
+                </div>
+                <div className="analysis-content">
+                  <div className="analysis-chart">
+                    <div className="chart-placeholder">
+                      <div className="chart-icon">📊</div>
+                      <h3>Force vs Time</h3>
+                      <p>Drag, lift, and side forces over flight time</p>
+                    </div>
+                  </div>
+                  <div className="analysis-stats">
+                    <div className="stat-item">
+                      <span className="stat-label">Max Drag Force</span>
+                      <span className="stat-value">-- N</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Max Lift Force</span>
+                      <span className="stat-value">-- N</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Drag Coefficient</span>
+                      <span className="stat-value">--</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Lift Coefficient</span>
+                      <span className="stat-value">--</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pressure Distribution */}
+              <div className="results-section pressure-distribution">
+                <div className="section-header">
+                  <h2>💨 Pressure Distribution</h2>
+                  <div className="section-actions">
+                    <button className="action-btn">3D View</button>
+                    <button className="action-btn">Export STL</button>
+                  </div>
+                </div>
+                <div className="visualization-container">
+                  <div className="pressure-visualization">
+                    <div className="viz-placeholder">
+                      <div className="viz-icon">🎨</div>
+                      <h3>Pressure Field</h3>
+                      <p>3D visualization of pressure distribution on rocket surface</p>
+                    </div>
+                  </div>
+                  <div className="pressure-stats">
+                    <div className="pressure-range">
+                      <div className="range-label">Pressure Range</div>
+                      <div className="range-values">
+                        <span className="min-pressure">Min: -- Pa</span>
+                        <span className="max-pressure">Max: -- Pa</span>
+                      </div>
+                    </div>
+                    <div className="pressure-zones">
+                      <div className="zone-item high-pressure">
+                        <div className="zone-color"></div>
+                        <span>High Pressure Zones</span>
+                      </div>
+                      <div className="zone-item low-pressure">
+                        <div className="zone-color"></div>
+                        <span>Low Pressure Zones</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Fin Control Results */}
+              <div className="results-section fin-control-results">
+                <div className="section-header">
+                  <h2>🎛️ Active Fin Control</h2>
+                  <div className="section-status">
+                    <span className="status-indicator">Active</span>
+                  </div>
+                </div>
+                <div className="control-metrics">
+                  <div className="control-chart">
+                    <div className="chart-placeholder">
+                      <div className="chart-icon">🎯</div>
+                      <h3>Fin Deflections</h3>
+                      <p>Real-time fin angle adjustments during flight</p>
+                    </div>
+                  </div>
+                  <div className="control-stats">
+                    <div className="stat-grid">
+                      <div className="stat-item">
+                        <span className="stat-label">Max Deflection</span>
+                        <span className="stat-value">--°</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Control Accuracy</span>
+                        <span className="stat-value">--%</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Corrections Made</span>
+                        <span className="stat-value">--</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Response Time</span>
+                        <span className="stat-value">-- ms</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trajectory Analysis */}
+              <div className="results-section trajectory-analysis">
+                <div className="section-header">
+                  <h2>🛤️ Flight Trajectory</h2>
+                  <div className="section-actions">
+                    <button className="action-btn">Export Path</button>
+                    <button className="action-btn">Compare</button>
+                  </div>
+                </div>
+                <div className="trajectory-content">
+                  <div className="trajectory-plot">
+                    <div className="plot-placeholder">
+                      <div className="plot-icon">📈</div>
+                      <h3>3D Flight Path</h3>
+                      <p>Complete trajectory from launch to landing</p>
+                    </div>
+                  </div>
+                  <div className="trajectory-data">
+                    <div className="data-section">
+                      <h4>Launch Parameters</h4>
+                      <div className="data-grid">
+                        <div className="data-item">
+                          <span>Launch Angle</span>
+                          <span>--°</span>
+                        </div>
+                        <div className="data-item">
+                          <span>Initial Velocity</span>
+                          <span>-- m/s</span>
+                        </div>
+                        <div className="data-item">
+                          <span>Wind Effect</span>
+                          <span>-- m/s</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="data-section">
+                      <h4>Landing Data</h4>
+                      <div className="data-grid">
+                        <div className="data-item">
+                          <span>Landing Distance</span>
+                          <span>-- m</span>
+                        </div>
+                        <div className="data-item">
+                          <span>Landing Velocity</span>
+                          <span>-- m/s</span>
+                        </div>
+                        <div className="data-item">
+                          <span>Accuracy</span>
+                          <span>-- m</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data Export & Actions */}
+              <div className="results-section data-export">
+                <div className="section-header">
+                  <h2>💾 Data Export</h2>
+                  <div className="section-actions">
+                    <button className="action-btn primary">Download All</button>
+                  </div>
+                </div>
+                <div className="export-options">
+                  <div className="export-grid">
+                    <div className="export-option">
+                      <div className="export-icon">📊</div>
+                      <h3>CSV Data</h3>
+                      <p>Time-series data for analysis</p>
+                      <button className="export-btn">Download</button>
+                    </div>
+                    <div className="export-option">
+                      <div className="export-icon">🎥</div>
+                      <h3>Animation</h3>
+                      <p>Flight simulation video</p>
+                      <button className="export-btn">Generate</button>
+                    </div>
+                    <div className="export-option">
+                      <div className="export-icon">📋</div>
+                      <h3>Report</h3>
+                      <p>Complete analysis report</p>
+                      <button className="export-btn">Generate</button>
+                    </div>
+                    <div className="export-option">
+                      <div className="export-icon">🔧</div>
+                      <h3>OpenFOAM</h3>
+                      <p>Raw simulation files</p>
+                      <button className="export-btn">Download</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Results Status Bar */}
+            <div className="results-status-bar">
+              <div className="status-info">
+                <span className="status-icon">ℹ️</span>
+                <span>Run a simulation to see results</span>
+              </div>
+              <div className="status-actions">
+                <button className="status-btn">Clear Results</button>
+                <button className="status-btn primary">Run New Simulation</button>
+              </div>
+            </div>
           </div>
         )}
       </main>
