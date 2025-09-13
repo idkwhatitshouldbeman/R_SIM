@@ -1900,41 +1900,41 @@ function App() {
                 <div className="launch-header">
                   <h1>🚀 Ready to Launch</h1>
                   <p>Your rocket is configured and ready for CFD analysis</p>
-                </div>
-                
-                <button 
+            </div>
+            
+                    <button 
                   className="launch-button"
-                  onClick={startSimulation}
-                >
+                      onClick={startSimulation}
+                    >
                   <span className="button-icon">🚀</span>
                   <span className="button-text">Start Simulation</span>
-                </button>
+                    </button>
                 
                 <div className="simulation-info">
                   <div className="info-item">
                     <span className="info-icon">⏱️</span>
                     <span>Expected duration: 5-15 minutes</span>
-                  </div>
+                </div>
                   <div className="info-item">
                     <span className="info-icon">🔬</span>
                     <span>OpenFOAM CFD analysis with active fin control</span>
-                  </div>
-                </div>
               </div>
+                </div>
+                </div>
             ) : (
               <div className="simulation-running">
                 <div className="loading-animation">
                   <div className="rocket-loader">
                     <div className="rocket">🚀</div>
                     <div className="trail"></div>
-                  </div>
-                </div>
-                
+              </div>
+            </div>
+            
                 <div className="simulation-status">
                   <h2>{simulationStatus?.status || 'Initializing...'}</h2>
                   <p>{simulationStatus?.message || 'Setting up simulation environment...'}</p>
-                </div>
-                
+              </div>
+              
                 <div className="progress-container">
                   <div className="progress-bar">
                     <div 
@@ -1944,9 +1944,9 @@ function App() {
                   </div>
                   <div className="progress-text">
                     {simulationStatus?.progress || 0}% Complete
-                  </div>
-                </div>
-                
+              </div>
+            </div>
+            
                 <div className="simulation-details">
                   <div className="detail-item">
                     <span className="detail-label">Status:</span>
@@ -1964,7 +1964,7 @@ function App() {
                       <span className="detail-value">{simulationStatus.cell_count.toLocaleString()}</span>
                     </div>
                   )}
-                </div>
+                    </div>
                 
                 <button 
                   className="stop-button"
@@ -2534,7 +2534,7 @@ function App() {
         )}
         
         {activeTab === 'setup' && (
-          <div className="tab-content">
+          <div key="setup" className="tab-content">
             {/* Weather Condition Presets */}
             <div className="preset-configs">
               <h3>Weather Conditions</h3>
@@ -2719,7 +2719,7 @@ function App() {
                 )}
         
         {activeTab === 'control' && (
-          <div className="tab-content">
+          <div key="control" className="tab-content">
             <h2>Active Fin Control System</h2>
             
             {/* Control System Status */}
@@ -2832,19 +2832,19 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 <div className="feedback-item">
                   <label>Velocity (m/s):</label>
                   <span id="velocity-display">Vx: 0.0, Vy: 0.0, Vz: 0.0</span>
-                      </div>
+                    </div>
                 <div className="feedback-item">
                   <label>Fin Deflections (deg):</label>
                   <span id="fin-display">Fin1: 0.0, Fin2: 0.0, Fin3: 0.0, Fin4: 0.0</span>
-                    </div>
+                  </div>
                 <div className="feedback-item">
                   <label>Control Error:</label>
                   <span id="error-display">Pitch: 0.0°, Yaw: 0.0°</span>
-                  </div>
               </div>
-            </div>
+                </div>
+                      </div>
             <p>Content will go here...</p>
-          </div>
+                      </div>
         )}
         
         {activeTab === 'results' && (
@@ -2852,8 +2852,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
             <div className="results-header">
               <h1>📊 Simulation Results</h1>
               <p>Analysis and visualization of your rocket's performance</p>
-            </div>
-
+                      </div>
+                      
             <div className="results-grid">
               {/* Performance Overview */}
               <div className="results-section performance-overview">
@@ -2861,8 +2861,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <h2>🚀 Performance Overview</h2>
                   <div className="section-status">
                     <span className="status-indicator">Ready</span>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <div className="performance-metrics">
                   <div className="metric-card">
                     <div className="metric-icon">📈</div>
@@ -2870,16 +2870,16 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       <h3>Max Altitude</h3>
                       <div className="metric-value">-- m</div>
                       <div className="metric-label">Peak height achieved</div>
-                    </div>
                   </div>
+              </div>
                   <div className="metric-card">
                     <div className="metric-icon">⚡</div>
                     <div className="metric-content">
                       <h3>Max Velocity</h3>
                       <div className="metric-value">-- m/s</div>
                       <div className="metric-label">Peak speed reached</div>
-                    </div>
-                  </div>
+                </div>
+                      </div>
                   <div className="metric-card">
                     <div className="metric-icon">🎯</div>
                     <div className="metric-content">
@@ -2897,8 +2897,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                   </div>
                 </div>
-              </div>
-
+                      </div>
+                      
               {/* Aerodynamic Analysis */}
               <div className="results-section aerodynamic-analysis">
                 <div className="section-header">
@@ -2934,8 +2934,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                   </div>
                 </div>
-              </div>
-
+                      </div>
+                      
               {/* Pressure Distribution */}
               <div className="results-section pressure-distribution">
                 <div className="section-header">
@@ -2973,23 +2973,23 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                   </div>
                 </div>
-              </div>
-
+                      </div>
+                      
               {/* Active Fin Control Results */}
               <div className="results-section fin-control-results">
                 <div className="section-header">
                   <h2>🎛️ Active Fin Control</h2>
                   <div className="section-status">
                     <span className="status-indicator">Active</span>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                 <div className="control-metrics">
                   <div className="control-chart">
                     <div className="chart-placeholder">
                       <div className="chart-icon">🎯</div>
                       <h3>Fin Deflections</h3>
                       <p>Real-time fin angle adjustments during flight</p>
-                    </div>
+                  </div>
                   </div>
                   <div className="control-stats">
                     <div className="stat-grid">
@@ -3011,8 +3011,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
+            </div>
 
               {/* Trajectory Analysis */}
               <div className="results-section trajectory-analysis">
@@ -3021,7 +3021,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <div className="section-actions">
                     <button className="action-btn">Export Path</button>
                     <button className="action-btn">Compare</button>
-                  </div>
+          </div>
                 </div>
                 <div className="trajectory-content">
                   <div className="trajectory-plot">
@@ -3076,7 +3076,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <h2>💾 Data Export</h2>
                   <div className="section-actions">
                     <button className="action-btn primary">Download All</button>
-                  </div>
+          </div>
                 </div>
                 <div className="export-options">
                   <div className="export-grid">

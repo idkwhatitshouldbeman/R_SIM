@@ -28,6 +28,14 @@ class GCPCFDClient:
     def _setup_authentication(self):
         """Set up Google Cloud authentication"""
         try:
+            # Check if service account file exists
+            if not os.path.exists(self.service_account_path):
+                print(f"⚠️  GCP service account file not found: {self.service_account_path}")
+                print("⚠️  GCP integration will be disabled. Running in simulation mode.")
+                self.credentials = None
+                self.authed_session = None
+                return
+            
             # Load service account credentials
             self.credentials = service_account.Credentials.from_service_account_file(
                 self.service_account_path,
@@ -82,6 +90,10 @@ class GCPCFDClient:
     
     def submit_cfd_simulation(self, rocket_data: Dict, simulation_config: Dict) -> Dict:
         """Submit a CFD simulation to Google Cloud Function"""
+        if not self.authed_session:
+            print("⚠️  GCP not available, running in simulation mode")
+            return self._simulate_cfd_submission(rocket_data, simulation_config)
+        
         if not self.function_url:
             raise ValueError("Function URL not set")
         
@@ -118,8 +130,24 @@ class GCPCFDClient:
             print(f"❌ Submission error: {e}")
             return {"error": str(e)}
     
+    def _simulate_cfd_submission(self, rocket_data: Dict, simulation_config: Dict) -> Dict:
+        """Simulate CFD submission when GCP is not available"""
+        simulation_id = f"sim_{int(time.time())}"
+        print(f"🎭 Simulating CFD submission (ID: {simulation_id})")
+        
+        return {
+            "success": True,
+            "simulation_id": simulation_id,
+            "status": "submitted",
+            "message": "Simulation submitted (simulation mode)",
+            "estimated_completion": time.time() + 300  # 5 minutes
+        }
+    
     def get_simulation_status(self, simulation_id: str) -> Dict:
         """Get the status of a running simulation"""
+        if not self.authed_session:
+            return self._simulate_status_check(simulation_id)
+        
         if not self.function_url:
             raise ValueError("Function URL not set")
         
@@ -145,6 +173,9 @@ class GCPCFDClient:
     
     def get_simulation_results(self, simulation_id: str) -> Dict:
         """Get the results of a completed simulation"""
+        if not self.authed_session:
+            return self._simulate_results_get(simulation_id)
+        
         if not self.function_url:
             raise ValueError("Function URL not set")
         
@@ -170,6 +201,9 @@ class GCPCFDClient:
     
     def cancel_simulation(self, simulation_id: str) -> Dict:
         """Cancel a running simulation"""
+        if not self.authed_session:
+            return {"success": True, "message": "Simulation cancelled (simulation mode)"}
+        
         if not self.function_url:
             raise ValueError("Function URL not set")
         
@@ -192,6 +226,31 @@ class GCPCFDClient:
                 
         except Exception as e:
             return {"error": str(e)}
+    
+    def _simulate_status_check(self, simulation_id: str) -> Dict:
+        """Simulate status check when GCP is not available"""
+        return {
+            "success": True,
+            "simulation_id": simulation_id,
+            "status": "running",
+            "progress": 45,
+            "message": "Simulation in progress (simulation mode)"
+        }
+    
+    def _simulate_results_get(self, simulation_id: str) -> Dict:
+        """Simulate results retrieval when GCP is not available"""
+        return {
+            "success": True,
+            "simulation_id": simulation_id,
+            "status": "completed",
+            "results": {
+                "drag_coefficient": 0.45,
+                "lift_coefficient": 0.12,
+                "pressure_distribution": "simulated_data",
+                "velocity_field": "simulated_data"
+            },
+            "message": "Results retrieved (simulation mode)"
+        }
 
 def main():
     """Test the GCP CFD client"""
