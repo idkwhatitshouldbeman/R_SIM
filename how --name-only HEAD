@@ -1,0 +1,5 @@
+[33m3c0ee53[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m  Complete Active Fin Control System Implementation
+[33m8d7290f[m Fix frontend build issue - Use pnpm instead of npm
+[33m6c9036a[m Add error handling and fallback for frontend build failures
+[33m2256ebb[m Add comprehensive diagnostics for deployment debugging
+[33me955855[m Fix Flask static file serving for React frontend

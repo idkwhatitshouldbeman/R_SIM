@@ -1894,7 +1894,7 @@ function App() {
 
       <main className="main-content">
         {activeTab === 'simulation' && (
-          <div className="simulation-run-container">
+          <div key="simulation" className="simulation-run-container">
             {!simulationRunning ? (
               <div className="simulation-ready">
                 <div className="launch-header">
@@ -1979,7 +1979,7 @@ function App() {
         )}
         
         {activeTab === 'builder' && (
-          <div className="rocket-builder-layout">
+          <div key="builder" className="rocket-builder-layout">
             {/* Left Panel - Rocket Structure & Properties */}
             <div className="left-panel">
               <div className="structure-section">
@@ -2848,7 +2848,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         )}
         
         {activeTab === 'results' && (
-          <div className="results-container">
+          <div key="results" className="results-container">
             <div className="results-header">
               <h1>📊 Simulation Results</h1>
               <p>Analysis and visualization of your rocket's performance</p>
