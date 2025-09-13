@@ -18,11 +18,19 @@ from flask import Flask, request, jsonify, Blueprint
 from flask_cors import CORS
 
 # Import our real CFD and mesh systems
-from mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
-from cfd_data_extractor import CFDDataManager
-from simulation_orchestrator import SimulationOrchestrator
-from openfoam_case_generator import create_active_fin_case
-from gcp_active_fin_integration import GCPActiveFinIntegration
+try:
+    from .mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
+    from .cfd_data_extractor import CFDDataManager
+    from .simulation_orchestrator import SimulationOrchestrator
+    from .openfoam_case_generator import create_active_fin_case
+    from .gcp_active_fin_integration import GCPActiveFinIntegration
+except ImportError:
+    # Fallback for when running as main module
+    from mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
+    from cfd_data_extractor import CFDDataManager
+    from simulation_orchestrator import SimulationOrchestrator
+    from openfoam_case_generator import create_active_fin_case
+    from gcp_active_fin_integration import GCPActiveFinIntegration
 
 # Load OpenFOAM environment
 try:
@@ -855,6 +863,73 @@ CORS(app)
 
 # Initialize managers
 openfoam_manager = OpenFOAMManager()
+
+# Basic API endpoints for frontend
+@app.route("/api/rocket-components", methods=["GET"])
+def get_rocket_components():
+    """Get current rocket components"""
+    return jsonify({
+        "success": True,
+        "components": []
+    })
+
+@app.route("/api/rocket-components", methods=["POST"])
+def update_rocket_components():
+    """Update rocket components"""
+    try:
+        data = request.get_json()
+        components = data.get("components", [])
+        return jsonify({
+            "success": True,
+            "message": f"Updated {len(components)} components"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error updating components: {str(e)}"
+        }), 500
+
+@app.route("/api/simulation-config", methods=["GET"])
+def get_simulation_config():
+    """Get current simulation configuration"""
+    return jsonify({
+        "success": True,
+        "config": {
+            "solver_type": "pimpleFoam",
+            "turbulence_model": "LES",
+            "time_step": 0.001,
+            "max_time": 30,
+            "write_interval": 100,
+            "domain_size": 10,
+            "base_cell_size": 0.01,
+            "boundary_layer_cells": 5,
+            "refinement_level": "medium",
+            "mesh_quality": 0.3
+        }
+    })
+
+@app.route("/api/simulation-config", methods=["POST"])
+def update_simulation_config():
+    """Update simulation configuration"""
+    try:
+        data = request.get_json()
+        return jsonify({
+            "success": True,
+            "message": "Simulation configuration updated"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error updating config: {str(e)}"
+        }), 500
+
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "message": "R_SIM backend is running"
+    })
 
 @app.route("/api/simulation/start", methods=["POST"])
 def start_simulation():

@@ -22,16 +22,71 @@ class FinGeometryManager:
         self.fin_attachment_points = {}
         self.fin_axes = {}
         
-    def load_fin_geometry(self, fin_id: str, stl_path: str):
-        """Load fin geometry from STL file"""
+    def load_fin_geometry(self, fin_id: str, stl_path: str = None, fin_config: Dict = None):
+        """Load fin geometry from STL file or generate from config"""
         try:
-            mesh = trimesh.load(stl_path)
-            self.fin_geometries[fin_id] = mesh
-            print(f"✅ Loaded fin geometry for {fin_id}")
-            return True
+            if stl_path and Path(stl_path).exists():
+                # Load from specific STL path
+                mesh = trimesh.load(stl_path)
+                self.fin_geometries[fin_id] = mesh
+                print(f"✅ Loaded fin geometry for {fin_id} from {stl_path}")
+                return True
+            elif fin_config:
+                # Generate STL path from config
+                stl_path = self._get_fin_stl_path(fin_config)
+                if stl_path and Path(stl_path).exists():
+                    mesh = trimesh.load(stl_path)
+                    self.fin_geometries[fin_id] = mesh
+                    print(f"✅ Loaded fin geometry for {fin_id} from generated path: {stl_path}")
+                    return True
+                else:
+                    # Generate fallback geometry
+                    mesh = self._generate_fallback_fin_geometry(fin_config)
+                    self.fin_geometries[fin_id] = mesh
+                    print(f"⚠️  Using fallback geometry for {fin_id}")
+                    return True
+            else:
+                print(f"❌ No STL path or fin config provided for {fin_id}")
+                return False
+                
         except Exception as e:
             print(f"❌ Error loading fin geometry for {fin_id}: {e}")
             return False
+    
+    def _get_fin_stl_path(self, fin_config: Dict) -> str:
+        """Get STL file path from fin configuration"""
+        fin_shape = fin_config.get('finShape', 'rectangular')
+        height = fin_config.get('finHeight', 25.0)
+        width = fin_config.get('finWidth', 15.0)
+        thickness = fin_config.get('finThickness', 2.0)
+        count = fin_config.get('finCount', 4)
+        
+        filename = f"fin_{fin_shape}_{height}x{width}x{thickness}_count{count}.stl"
+        filepath = Path(__file__).parent / "fin_geometries" / filename
+        return str(filepath)
+    
+    def _generate_fallback_fin_geometry(self, fin_config: Dict) -> trimesh.Trimesh:
+        """Generate fallback fin geometry if STL file not found"""
+        height = fin_config.get('finHeight', 25.0)
+        width = fin_config.get('finWidth', 15.0)
+        thickness = fin_config.get('finThickness', 2.0)
+        
+        # Create a simple rectangular fin mesh as fallback
+        vertices = np.array([
+            [0, 0, 0], [width, 0, 0], [width, height, 0], [0, height, 0],  # Bottom face
+            [0, 0, thickness], [width, 0, thickness], [width, height, thickness], [0, height, thickness]  # Top face
+        ])
+        
+        faces = np.array([
+            [0, 1, 2], [0, 2, 3],  # Bottom
+            [4, 6, 5], [4, 7, 6],  # Top
+            [0, 4, 5], [0, 5, 1],  # Front
+            [1, 5, 6], [1, 6, 2],  # Right
+            [2, 6, 7], [2, 7, 3],  # Back
+            [3, 7, 4], [3, 4, 0]   # Left
+        ])
+        
+        return trimesh.Trimesh(vertices=vertices, faces=faces)
     
     def set_fin_attachment_point(self, fin_id: str, point: Tuple[float, float, float]):
         """Set the attachment point for a fin (rotation center)"""

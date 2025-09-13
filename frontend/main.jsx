@@ -1030,7 +1030,7 @@ function App() {
   // Active Fin Control API Functions
   const updateActiveFinControlConfig = async (configData) => {
     try {
-      const response = await fetch('http://localhost:5000/api/active-fin-control/config', {
+      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1050,7 +1050,7 @@ function App() {
 
   const startActiveFinControl = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/active-fin-control/start', {
+      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1069,7 +1069,7 @@ function App() {
 
   const stopActiveFinControl = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/active-fin-control/stop', {
+      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/stop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1088,7 +1088,7 @@ function App() {
 
   const testControlAlgorithm = async (testData) => {
     try {
-      const response = await fetch('http://localhost:5000/api/active-fin-control/test', {
+      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1118,7 +1118,7 @@ function App() {
     });
     
     try {
-      const response = await fetch('http://localhost:5000/api/simulation/start', {
+      const response = await fetch('http://127.0.0.1:5000/api/simulation/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1153,7 +1153,7 @@ function App() {
 
   const stopSimulation = async () => {
     try {
-      await fetch('http://localhost:5000/api/simulation/stop', {
+      await fetch('http://127.0.0.1:5000/api/simulation/stop', {
         method: 'POST'
       });
       setSimulationRunning(false);
@@ -1171,7 +1171,7 @@ function App() {
     });
     
     try {
-      const response = await fetch('http://localhost:5000/api/simulation/mesh', {
+      const response = await fetch('http://127.0.0.1:5000/api/simulation/mesh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1212,7 +1212,7 @@ function App() {
       }
       
       try {
-        const response = await fetch('http://localhost:5000/api/simulation/status');
+        const response = await fetch('http://127.0.0.1:5000/api/simulation/status');
         if (response.ok) {
           const status = await response.json();
           setSimulationStatus(status);
@@ -1363,16 +1363,20 @@ function App() {
     if (draggedComponent.type === 'Fins' && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the fins to the body tube
       console.log(`Attempting to attach ${draggedComponent.name} to ${dropTarget.name}`);
+      console.log(`Drop target ID: ${dropTarget.id}, Dragged component ID: ${draggedComponent.id}`);
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
           ...draggedComponent,
           attachedToComponent: dropTarget.id
         };
+        console.log(`Updated component:`, newComponents[dragIndex]);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
         console.log(`SUCCESS: ${draggedComponent.name} moved to ${dropTarget.name}`);
+        showNotification(`✅ ${draggedComponent.name} attached to ${dropTarget.name}`, 'success');
       } catch (error) {
         console.error('Error connecting fins:', error);
+        showNotification(`❌ Error attaching fins: ${error.message}`, 'error');
       }
     } else {
       // Regular reordering
@@ -1998,6 +2002,7 @@ function App() {
                     const attachedFins = rocketComponents.filter(comp => 
                       comp.type === 'Fins' && comp.attachedToComponent === component.id
                     );
+                    console.log(`Component ${component.name} (ID: ${component.id}) has ${attachedFins.length} attached fins:`, attachedFins.map(f => f.name));
 
                     
 

@@ -12,9 +12,16 @@ from typing import Dict, List, Optional, Tuple
 import json
 import shutil
 
-from mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
-from cfd_data_extractor import CFDDataManager
-from gcp_active_fin_integration import GCPActiveFinIntegration
+try:
+    from .mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
+    from .cfd_data_extractor import CFDDataManager
+    from .gcp_active_fin_integration import GCPActiveFinIntegration
+    from .mesh_generator import OpenFOAMMeshGenerator
+except ImportError:
+    from mesh_morphing import OpenFOAMDynamicMeshManager, create_default_fin_configs
+    from cfd_data_extractor import CFDDataManager
+    from gcp_active_fin_integration import GCPActiveFinIntegration
+    from mesh_generator import OpenFOAMMeshGenerator
 
 class SimulationOrchestrator:
     """Orchestrates the complete active fin control simulation"""
@@ -27,6 +34,7 @@ class SimulationOrchestrator:
         # Initialize components
         self.dynamic_mesh_manager = None
         self.cfd_data_manager = None
+        self.mesh_generator = OpenFOAMMeshGenerator(case_dir)
         self.gcp_integration = None
         
         # Simulation state
@@ -86,6 +94,61 @@ class SimulationOrchestrator:
             
         except Exception as e:
             print(f"❌ Error setting up simulation: {e}")
+            return False
+    
+    def generate_mesh(self, rocket_config: Dict = None, simulation_config: Dict = None) -> bool:
+        """Generate OpenFOAM mesh using blockMesh and snappyHexMesh"""
+        try:
+            print("🔄 Generating OpenFOAM mesh...")
+            
+            # Extract rocket dimensions for domain sizing
+            rocket_length = 2.0  # Default rocket length
+            rocket_diameter = 0.1  # Default rocket diameter
+            
+            # Try to extract from rocket components
+            if rocket_config and 'components' in rocket_config:
+                total_length = 0
+                max_diameter = 0
+                for component in rocket_config['components']:
+                    if component.get('type') in ['Nose Cone', 'Body Tube', 'Transition']:
+                        total_length += component.get('length', 0) / 100.0  # Convert cm to m
+                        diameter = component.get('diameter', 0) / 100.0  # Convert cm to m
+                        max_diameter = max(max_diameter, diameter)
+                
+                if total_length > 0:
+                    rocket_length = total_length
+                if max_diameter > 0:
+                    rocket_diameter = max_diameter
+            
+            # Domain configuration
+            domain_config = {
+                'domain_size': (simulation_config or {}).get('domain_size', 5.0),
+                'base_cell_size': (simulation_config or {}).get('base_cell_size', 0.1),
+                'rocket_length': rocket_length,
+                'rocket_diameter': rocket_diameter
+            }
+            
+            # Mesh configuration
+            mesh_config = {
+                'refinement_level': (simulation_config or {}).get('refinement_level', 'medium'),
+                'boundary_layer_cells': (simulation_config or {}).get('boundary_layer_cells', 3),
+                'mesh_quality': (simulation_config or {}).get('mesh_quality', 0.3)
+            }
+            
+            # Generate complete mesh
+            success = self.mesh_generator.generate_complete_mesh(
+                rocket_config or {}, domain_config, mesh_config
+            )
+            
+            if success:
+                print("✅ Mesh generation completed successfully")
+                return True
+            else:
+                print("❌ Mesh generation failed")
+                return False
+            
+        except Exception as e:
+            print(f"❌ Error generating mesh: {e}")
             return False
     
     def start_simulation(self, control_algorithm: str, target_trajectory: Dict = None) -> bool:
