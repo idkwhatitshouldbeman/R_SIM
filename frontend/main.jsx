@@ -5,7 +5,33 @@ import './App.css';
 function App() {
   const [activeTab, setActiveTab] = useState('builder');
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [clickTimeout, setClickTimeout] = useState(null);
   const [rocketComponents, setRocketComponents] = useState([]);
+
+  // Handle click/double-click for components
+  const handleComponentClick = (component, isDoubleClick = false) => {
+    console.log('🖱️ Component Click:', component.name, isDoubleClick ? '(DOUBLE)' : '(SINGLE)');
+    
+    if (isDoubleClick) {
+      // Clear any pending single click
+      if (clickTimeout) {
+        clearTimeout(clickTimeout);
+        setClickTimeout(null);
+      }
+      // Double click - open config
+      setSelectedComponent(component);
+    } else {
+      // Single click - select component
+      setSelectedComponent(component);
+      
+      // Set timeout to detect if this becomes a double click
+      const timeout = setTimeout(() => {
+        // This was just a single click, no double click followed
+        console.log('🖱️ Single click confirmed for:', component.name);
+      }, 300);
+      setClickTimeout(timeout);
+    }
+  };
   const [rocketWeight, setRocketWeight] = useState(0);
   const [rocketCG, setRocketCG] = useState(0);
   const [inputValues, setInputValues] = useState({});
@@ -62,8 +88,13 @@ function App() {
     calculateVelocity: true,
     outputFormat: 'vtk',
     
-    // Active Fin Control Settings
+    // Active Fin Control Settings (simplified)
     activeFinControl: 'disabled',
+    motorPower: 50, // Watts
+    maxAngle: 15, // degrees
+    responseSpeed: 10, // Hz
+    
+    // CFD Settings (moved from active fin control)
     cfdTimeStep: 0.01,
     controlUpdateRate: 100,
     finDeflectionLimit: 15, // degrees
@@ -71,7 +102,50 @@ function App() {
       kp: 1.0,  // Proportional gain
       ki: 0.1,  // Integral gain
       kd: 0.05  // Derivative gain
-    }
+    },
+    
+    // Control Code
+    controlCode: `// Active Fin Control Algorithm
+// This code runs in real-time during CFD simulation
+// Available variables: attitude, velocity, position, target_trajectory
+// Output: fin_deflections (array of 4 fin angles in degrees)
+
+function calculateFinDeflections(cfdData, targetTrajectory) {
+    // Extract CFD feedback data
+    const attitude = cfdData.attitude;        // [roll, pitch, yaw] in degrees
+    const velocity = cfdData.velocity;        // [vx, vy, vz] in m/s
+    const position = cfdData.position;        // [x, y, z] in meters
+    const angularVelocity = cfdData.angularVelocity; // [wx, wy, wz] in rad/s
+    
+    // Target trajectory
+    const targetPitch = targetTrajectory.pitch;
+    const targetYaw = targetTrajectory.yaw;
+    
+    // Control gains
+    const kp = 1.0;  // Proportional gain
+    const ki = 0.1;  // Integral gain  
+    const kd = 0.05; // Derivative gain
+    
+    // Calculate errors
+    const pitchError = targetPitch - attitude[1];
+    const yawError = targetYaw - attitude[2];
+    
+    // PID control for pitch (fins 1&3)
+    const pitchControl = kp * pitchError + ki * integralError + kd * derivativeError;
+    
+    // PID control for yaw (fins 2&4)  
+    const yawControl = kp * yawError + ki * integralError + kd * derivativeError;
+    
+    // Calculate fin deflections (4 fins)
+    const finDeflections = [
+        pitchControl,  // Fin 1 (top)
+        yawControl,    // Fin 2 (right)
+        -pitchControl, // Fin 3 (bottom) 
+        -yawControl    // Fin 4 (left)
+    ];
+    
+    return finDeflections;
+}`
   });
   
   const [simulationRunning, setSimulationRunning] = useState(false);
@@ -309,21 +383,17 @@ function App() {
   const importSTL = (event) => {
     const file = event.target.files[0];
     if (file && file.name.toLowerCase().endsWith('.stl')) {
-      console.log('STL file selected:', file.name, 'Size:', file.size);
+      console.log('📁 STL Import:', file.name, `(${(file.size/1024).toFixed(1)}KB)`);
       
       const reader = new FileReader();
       reader.onload = (e) => {
         const stlContent = e.target.result;
-        console.log('STL content loaded, length:', stlContent.length);
-        console.log('First 500 chars:', stlContent.substring(0, 500));
         
         // Process the STL to clean it up
         const processedSTL = processSTL(stlContent);
-        console.log('STL processed, length:', processedSTL.length);
         
         // Calculate dimensions first
         const dimensions = calculateSTLDimensions(processedSTL);
-        console.log('Dimensions calculated:', dimensions);
         
         // Create a rocket component from the STL file
         const stlRocket = {
@@ -357,7 +427,7 @@ function App() {
           attachedToComponent: null
         };
         
-        console.log('STL rocket component created:', stlRocket);
+        console.log('✅ STL Rocket Created:', dimensions);
         
         // Replace all existing components with the imported STL rocket
         setRocketComponents([stlRocket]);
@@ -379,7 +449,7 @@ function App() {
           setRocketCG(25); // Default CG
         }
         
-        console.log('Updated rocket properties:', { weight, cg, dimensions });
+        console.log('📊 Rocket Properties Updated:', { weight: `${weight}g`, cg: `${cg.toFixed(1)}cm` });
         
         // Show success message
         showNotification(`STL imported successfully! Rocket: ${stlRocket.name}, Length: ${dimensions.length} units, Diameter: ${dimensions.diameter} units`, 'success');
@@ -769,7 +839,7 @@ function App() {
       return;
     }
     
-    console.log('Fin file selected:', file.name, 'Type:', isSTL ? 'STL' : 'DXF');
+    console.log('📁 Fin Import:', file.name, `(${isSTL ? 'STL' : 'DXF'})`);
     
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -824,7 +894,7 @@ function App() {
           attachedToComponent: null
         };
         
-        console.log('Imported fin component created:', importedFin);
+        console.log('✅ Fin Imported:', importedFin.name);
         
         // Add to existing components
         setRocketComponents(prev => [...prev, importedFin]);
@@ -933,7 +1003,7 @@ function App() {
       const diameter = Math.max(Math.abs(maxX - minX), Math.abs(maxY - minY));
       const volume = length * Math.PI * Math.pow(diameter / 2, 2);
       
-      console.log('STL Dimensions calculated:', { length, diameter, volume, vertexCount });
+      console.log('📐 STL Dimensions:', `${length.toFixed(1)}×${diameter.toFixed(1)}cm (${vertexCount} vertices)`);
       
       return {
         length: Math.round(length * 100) / 100,
@@ -993,10 +1063,22 @@ function App() {
   };
 
   const updateComponent = (id, field, value) => {
+    console.log('🔄 updateComponent called:', { id, field, value });
     setRocketComponents(components => {
+      console.log('🔄 Before update - components:', components.map(c => ({ id: c.id, name: c.name, [field]: c[field] })));
       const updated = components.map(comp =>
         comp.id === id ? { ...comp, [field]: value } : comp
       );
+      console.log('🔄 After update - components:', updated.map(c => ({ id: c.id, name: c.name, [field]: c[field] })));
+      
+      // Update selectedComponent if it's the same component being updated
+      if (selectedComponent && selectedComponent.id === id) {
+        const updatedSelectedComponent = updated.find(comp => comp.id === id);
+        if (updatedSelectedComponent) {
+          console.log('🔄 Updating selectedComponent:', updatedSelectedComponent);
+          setSelectedComponent(updatedSelectedComponent);
+        }
+      }
       
       // Only clean up if we're updating an attachment field
       if (field === 'attachedToComponent') {
@@ -1030,7 +1112,7 @@ function App() {
   // Active Fin Control API Functions
   const updateActiveFinControlConfig = async (configData) => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/config', {
+      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1039,7 +1121,7 @@ function App() {
       });
       const result = await response.json();
       if (result.success) {
-        console.log('Active fin control config updated');
+        console.log('✅ Active fin control config updated');
       } else {
         console.error('Failed to update config:', result.error);
       }
@@ -1050,7 +1132,7 @@ function App() {
 
   const startActiveFinControl = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/start', {
+      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1058,7 +1140,7 @@ function App() {
       });
       const result = await response.json();
       if (result.success) {
-        console.log('Active fin control started');
+        console.log('🚀 Active fin control started');
       } else {
         console.error('Failed to start active fin control:', result.error);
       }
@@ -1069,7 +1151,7 @@ function App() {
 
   const stopActiveFinControl = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/stop', {
+      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/stop', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1077,7 +1159,7 @@ function App() {
       });
       const result = await response.json();
       if (result.success) {
-        console.log('Active fin control stopped');
+        console.log('⏹️ Active fin control stopped');
       } else {
         console.error('Failed to stop active fin control:', result.error);
       }
@@ -1088,7 +1170,7 @@ function App() {
 
   const testControlAlgorithm = async (testData) => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/active-fin-control/test', {
+      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1097,7 +1179,7 @@ function App() {
       });
       const result = await response.json();
       if (result.success) {
-        console.log('Control algorithm test result:', result.fin_deflections);
+        console.log('🧪 Control test result:', result.fin_deflections);
         return result.fin_deflections;
       } else {
         console.error('Failed to test control algorithm:', result.error);
@@ -1118,7 +1200,7 @@ function App() {
     });
     
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/simulation/start', {
+      const response = await fetch('http://127.0.0.1:5011/api/simulation/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1136,7 +1218,7 @@ function App() {
       }
       
       const data = await response.json();
-      console.log('Simulation started:', data);
+      console.log('🚀 Simulation started:', data.message);
       
       // Start polling for status updates
       pollSimulationStatus();
@@ -1153,7 +1235,7 @@ function App() {
 
   const stopSimulation = async () => {
     try {
-      await fetch('http://127.0.0.1:5000/api/simulation/stop', {
+      await fetch('http://127.0.0.1:5011/api/simulation/stop', {
         method: 'POST'
       });
       setSimulationRunning(false);
@@ -1171,7 +1253,7 @@ function App() {
     });
     
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/simulation/mesh', {
+      const response = await fetch('http://127.0.0.1:5011/api/simulation/mesh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1187,7 +1269,7 @@ function App() {
       }
       
       const data = await response.json();
-      console.log('Mesh generated:', data);
+      console.log('🔧 Mesh generated:', data.message);
       
       setSimulationStatus({
         status: 'Mesh Complete',
@@ -1212,7 +1294,7 @@ function App() {
       }
       
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/simulation/status');
+        const response = await fetch('http://127.0.0.1:5011/api/simulation/status');
         if (response.ok) {
           const status = await response.json();
           setSimulationStatus(status);
@@ -1300,10 +1382,20 @@ function App() {
 
   // Drag and drop handlers
   const handleDragStart = (e, component) => {
-    console.log('Drag started:', component.name);
+    console.log('🖱️ Drag Start:', component.name, `(${component.type})`);
+    
+    // DIAGNOSTIC: Test drag start setup
+    console.log('🧪 DragStart Test - DataTransfer Setup:', {
+      effectAllowed: e.dataTransfer.effectAllowed,
+      hasData: e.dataTransfer.getData('text/plain'),
+      dataTypes: e.dataTransfer.types,
+      files: e.dataTransfer.files.length,
+      items: e.dataTransfer.items.length
+    });
+    
     setDraggedComponent(component);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', component.id);
+    e.dataTransfer.setData('text/plain', component.id);
     e.dataTransfer.setData('application/json', JSON.stringify(component));
     e.stopPropagation(); // Prevent event bubbling
   };
@@ -1318,19 +1410,58 @@ function App() {
     );
     const dropTarget = bodyComponents[index];
     
+    console.log('🔄 DragOver:', {
+      index,
+      dropTarget: dropTarget?.name,
+      draggedComponent: draggedComponent?.name,
+      dropEffect: e.dataTransfer?.dropEffect
+    });
+    
+    // DIAGNOSTIC: Test drag over setup
+    console.log('🧪 DragOver Test - Event Details:', {
+      type: e.type,
+      target: e.target.className,
+      currentTarget: e.currentTarget.className,
+      dataTransfer: {
+        effectAllowed: e.dataTransfer?.effectAllowed,
+        dropEffect: e.dataTransfer?.dropEffect,
+        types: e.dataTransfer?.types,
+        hasData: e.dataTransfer?.getData('text/plain')
+      },
+      isDefaultPrevented: e.defaultPrevented,
+      isPropagationStopped: e.isPropagationStopped
+    });
+    
     if (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       e.dataTransfer.dropEffect = 'copy'; // Show copy effect for connecting
-      console.log(`Ready to drop ${draggedComponent?.name} onto ${dropTarget?.name} (index ${index})`);
+      console.log(`🎯 Ready to attach ${draggedComponent?.name} → ${dropTarget?.name}`);
     } else {
       e.dataTransfer.dropEffect = 'move'; // Show move effect for reordering
-      console.log(`Ready to reorder ${draggedComponent?.name} to position ${index}`);
+      console.log(`🔄 Ready to reorder ${draggedComponent?.name} to position ${index}`);
     }
     
     setDragOverIndex(index);
   };
 
   const handleDragLeave = (e) => {
-    setDragOverIndex(null);
+    console.log('🚪 DragLeave');
+    console.log('🚪 DragLeave Details:', {
+      type: e.type,
+      target: e.target.className,
+      currentTarget: e.currentTarget.className,
+      draggedComponent: draggedComponent?.name
+    });
+    
+    // DIAGNOSTIC: Check if dragLeave is interfering with drop
+    console.log('🧪 DragLeave Interference Test:', {
+      hasDraggedComponent: !!draggedComponent,
+      dragOverIndex: dragOverIndex,
+      willClearDragOver: true,
+      potentialIssue: 'DragLeave clearing dragOverIndex might prevent drop event'
+    });
+    
+    // FIX: Don't clear dragOverIndex on dragLeave to prevent drop interference
+    // setDragOverIndex(null); // COMMENTED OUT - This was causing the issue!
     e.stopPropagation();
   };
 
@@ -1338,17 +1469,16 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('DROP EVENT FIRED!', dropIndex);
-    console.log('Attempting to drop:', draggedComponent?.name, 'onto index:', dropIndex);
+    console.log('🎯 DROP EVENT:', draggedComponent?.name, '→ index', dropIndex);
     
     if (!draggedComponent) {
-      console.log('No dragged component found');
+      console.log('❌ No dragged component found');
       return;
     }
 
     const dragIndex = rocketComponents.findIndex(comp => comp.id === draggedComponent.id);
     if (dragIndex === -1) {
-      console.log('Could not find dragged component in rocketComponents');
+      console.log('❌ Dragged component not found in rocketComponents');
       return;
     }
 
@@ -1358,21 +1488,19 @@ function App() {
     );
     const dropTarget = bodyComponents[dropIndex];
     
-    console.log('Drop target found:', dropTarget?.name, 'Type:', dropTarget?.type);
+    console.log('🎯 Drop Target:', dropTarget?.name, `(${dropTarget?.type})`);
     
     if (draggedComponent.type === 'Fins' && ['Body Tube', 'Transition'].includes(dropTarget?.type)) {
       // Connect the fins to the body tube
-      console.log(`Attempting to attach ${draggedComponent.name} to ${dropTarget.name}`);
-      console.log(`Drop target ID: ${dropTarget.id}, Dragged component ID: ${draggedComponent.id}`);
+      console.log(`🔗 Attaching ${draggedComponent.name} → ${dropTarget.name}`);
       try {
         const newComponents = [...rocketComponents];
         newComponents[dragIndex] = {
           ...draggedComponent,
           attachedToComponent: dropTarget.id
         };
-        console.log(`Updated component:`, newComponents[dragIndex]);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log(`SUCCESS: ${draggedComponent.name} moved to ${dropTarget.name}`);
+        console.log(`✅ SUCCESS: ${draggedComponent.name} attached to ${dropTarget.name}`);
         showNotification(`✅ ${draggedComponent.name} attached to ${dropTarget.name}`, 'success');
       } catch (error) {
         console.error('Error connecting fins:', error);
@@ -1380,13 +1508,13 @@ function App() {
       }
     } else {
       // Regular reordering
-      console.log(`Attempting to reorder ${draggedComponent.name} to position ${dropIndex}`);
+      console.log(`🔄 Reordering ${draggedComponent.name} to position ${dropIndex}`);
       try {
         const newComponents = [...rocketComponents];
         const [removed] = newComponents.splice(dragIndex, 1);
         newComponents.splice(dropIndex, 0, removed);
         setRocketComponents(cleanupOrphanedComponents(newComponents));
-        console.log(`SUCCESS: ${draggedComponent.name} reordered to position ${dropIndex}`);
+        console.log(`✅ SUCCESS: ${draggedComponent.name} reordered to position ${dropIndex}`);
       } catch (error) {
         console.error('Error reordering components:', error);
       }
@@ -1397,11 +1525,129 @@ function App() {
   };
 
   const handleDragEnd = (e) => {
-    console.log('DRAG END triggered');
+    console.log('🖱️ Drag End');
+    console.log('🖱️ Drag End Details:', {
+      type: e.type,
+      target: e.target.className,
+      currentTarget: e.currentTarget.className,
+      dataTransfer: e.dataTransfer?.effectAllowed,
+      draggedComponent: draggedComponent?.name,
+      dropEffect: e.dataTransfer?.dropEffect
+    });
+    
+    // FALLBACK: If we have a dragged component and a dragOverIndex, but no drop event fired,
+    // manually trigger the drop logic
+    if (draggedComponent && dragOverIndex !== null) {
+      console.log('🚨 FALLBACK: No drop event fired, manually triggering drop logic');
+      console.log('🚨 Fallback Details:', {
+        draggedComponent: draggedComponent.name,
+        dragOverIndex: dragOverIndex,
+        reason: 'Drop event never fired, using dragEnd as fallback'
+      });
+      
+      // Manually call handleDrop with the current dragOverIndex
+      setTimeout(() => {
+        handleDrop(e, dragOverIndex);
+      }, 0);
+    }
+    
     setDraggedComponent(null);
     setDragOverIndex(null);
     e.stopPropagation();
   };
+
+  // Global drop handler to catch any missed drops
+  const handleGlobalDrop = (e) => {
+    console.log('🌍 Global Drop Event:', e.type);
+    console.log('🌍 Global Drop Details:', {
+      type: e.type,
+      target: e.target.className,
+      currentTarget: e.currentTarget.className,
+      dataTransfer: e.dataTransfer?.effectAllowed,
+      draggedComponent: draggedComponent?.name
+    });
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // COMPREHENSIVE DRAG & DROP DIAGNOSTICS
+  const runDragDropDiagnostics = () => {
+    console.log('🔍 === DRAG & DROP DIAGNOSTICS ===');
+    
+    // Test 1: Check if draggedComponent state is properly set
+    console.log('🧪 Test 1 - DraggedComponent State:', {
+      draggedComponent: draggedComponent,
+      isNull: draggedComponent === null,
+      isUndefined: draggedComponent === undefined,
+      hasName: draggedComponent?.name,
+      hasType: draggedComponent?.type
+    });
+    
+    // Test 2: Check if dragOverIndex is properly set
+    console.log('🧪 Test 2 - DragOverIndex State:', {
+      dragOverIndex: dragOverIndex,
+      isNull: dragOverIndex === null,
+      isUndefined: dragOverIndex === undefined,
+      isNumber: typeof dragOverIndex === 'number'
+    });
+    
+    // Test 3: Check rocketComponents array
+    console.log('🧪 Test 3 - RocketComponents Array:', {
+      length: rocketComponents.length,
+      hasFins: rocketComponents.some(c => c.type === 'Fins'),
+      finsComponents: rocketComponents.filter(c => c.type === 'Fins').map(f => ({id: f.id, name: f.name, attachedTo: f.attachedToComponent})),
+      bodyComponents: rocketComponents.filter(c => ['Body Tube', 'Transition'].includes(c.type)).map(b => ({id: b.id, name: b.name, type: b.type}))
+    });
+    
+    // Test 4: Check if event handlers are properly bound
+    console.log('🧪 Test 4 - Event Handler Functions:', {
+      handleDragStart: typeof handleDragStart,
+      handleDragOver: typeof handleDragOver,
+      handleDragLeave: typeof handleDragLeave,
+      handleDrop: typeof handleDrop,
+      handleDragEnd: typeof handleDragEnd
+    });
+    
+    // Test 5: Check browser drag and drop support
+    console.log('🧪 Test 5 - Browser Support:', {
+      hasDataTransfer: 'DataTransfer' in window,
+      hasDragEvent: 'DragEvent' in window,
+      hasFileReader: 'FileReader' in window,
+      userAgent: navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other'
+    });
+    
+    // Test 6: Check if preventDefault is working
+    console.log('🧪 Test 6 - Event Prevention:', {
+      note: 'This test requires manual drag operation to verify preventDefault is working'
+    });
+    
+    // Test 7: Check if stopPropagation is working
+    console.log('🧪 Test 7 - Event Propagation:', {
+      note: 'This test requires manual drag operation to verify stopPropagation is working'
+    });
+    
+    // Test 8: Check if dataTransfer is properly set
+    console.log('🧪 Test 8 - DataTransfer Setup:', {
+      note: 'This test requires manual drag operation to verify dataTransfer is working'
+    });
+    
+    // Test 9: Check if drop zones are properly configured
+    console.log('🧪 Test 9 - Drop Zone Configuration:', {
+      note: 'This test requires manual drag operation to verify drop zones are working'
+    });
+    
+    // Test 10: Check if React re-renders are interfering
+    console.log('🧪 Test 10 - React Re-render Issues:', {
+      note: 'This test requires manual drag operation to verify React is not interfering'
+    });
+    
+    console.log('🔍 === END DIAGNOSTICS ===');
+  };
+
+  // Run diagnostics on component mount
+  React.useEffect(() => {
+    runDragDropDiagnostics();
+  }, []);
 
   const drawRocketDiagram = () => {
     const canvas = canvasRef.current;
@@ -1671,39 +1917,22 @@ function App() {
       currentY += height;
     });
 
-    // Draw fins if any fin components exist
+    // Draw fins using parametric shape system
     const finComponents = rocketComponents.filter(comp => comp.type === 'Fins');
-    if (finComponents.length > 0 && ctx) {
+    if (finComponents.length > 0) {
       finComponents.forEach(finComponent => {
-        drawFins(ctx, finComponent, centerX, canvas.height);
-      });
-    }
-    
-
-    
-    // Restore canvas context after zoom transformation
-    ctx.restore();
-  };
-
-
-
-
-
-  const drawFins = (ctx, finComponent, centerX, canvasHeight) => {
-    try {
       const finShape = finComponent.finShape || 'rectangular';
       const finCount = Math.max(3, Math.min(8, finComponent.finCount || 4));
       const finHeight = Math.max(5, finComponent.finHeight || 25);
       const finWidth = Math.max(5, finComponent.finWidth || 15);
       const finThickness = Math.max(0.5, finComponent.finThickness || 2);
-      const finSweep = Math.max(0, finComponent.finSweep || 0);
+        const finOffset = finComponent.finOffset || 0; // Offset from bottom of attached component
       
       // Find the component that fins are attached to
       const attachedComponentId = finComponent.attachedToComponent;
       let attachedComponent = null;
       
       if (attachedComponentId) {
-        // Find the specific component fins are attached to
         attachedComponent = rocketComponents.find(comp => comp.id === attachedComponentId);
       }
       
@@ -1721,58 +1950,253 @@ function App() {
         ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
       );
       const totalHeight = bodyComponents.reduce((sum, comp) => sum + (comp.length || 60), 0);
-      const startY = (canvasHeight - totalHeight) / 2;
+      const startY = (canvas.height - totalHeight) / 2;
       
-      // Find the Y position of the attached component
-      let attachedComponentY = startY;
+      // Find the position of the attached component
+      let attachedComponentBottomY = startY + totalHeight; // Default to bottom of rocket
+      let currentY = startY;
+      
       for (const comp of bodyComponents) {
+        const compHeight = comp.length || 60;
         if (comp.id === attachedComponent.id) {
+          // Found the attached component - its bottom is currentY + compHeight
+          attachedComponentBottomY = currentY + compHeight;
           break;
         }
-        attachedComponentY += comp.length || 60;
+        currentY += compHeight;
       }
       
-      // Position fins at the bottom of the attached component
-      const baseFinY = attachedComponentY + (attachedComponent.length || 60);
       const bodyDiameter = attachedComponent.diameter || 20;
       const bodyRadius = bodyDiameter / 2;
+    
+      // Calculate fin position with offset from the bottom of the attached component
+      // finY represents the CENTER of the fin horizontally extending from the body tube
+      const finY = attachedComponentBottomY - finOffset;
+      
+      // Debug logging for fin positioning
+      console.log('🎯 Fin Positioning Debug:', {
+        finComponent: finComponent.name,
+        attachedTo: attachedComponent.name,
+        attachedComponentBottomY: attachedComponentBottomY,
+        finOffset: finOffset,
+        finalFinY: finY,
+        startY: startY,
+        totalHeight: totalHeight
+      });
+        
+        // Draw horizontal fins extending outward from the body tube
+        // Only draw left and right fins (visible from side view)
     
     ctx.fillStyle = '#8B4513';
     ctx.strokeStyle = '#654321';
     ctx.lineWidth = 1;
     
-    // Draw fins as clustered horizontal blocks (like the image description)
-    const numBlocks = Math.min(finCount * 2, 8); // 7-8 blocks as described
+        // Position fins centered on the attachment point
+        const finTopY = finY - finHeight/2; // Top of fin
+        const finBottomY = finY + finHeight/2; // Bottom of fin
+        
+        // Right fin (extends to the right)
+        const rightFinStartX = centerX + bodyRadius;
+        const rightFinEndX = centerX + bodyRadius + finWidth;
+        
+        ctx.beginPath();
+        ctx.moveTo(rightFinStartX, finTopY);
+        ctx.lineTo(rightFinEndX, finTopY);
+        ctx.lineTo(rightFinEndX, finBottomY);
+        ctx.lineTo(rightFinStartX, finBottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Left fin (extends to the left)
+        const leftFinStartX = centerX - bodyRadius;
+        const leftFinEndX = centerX - bodyRadius - finWidth;
+        
+        ctx.beginPath();
+        ctx.moveTo(leftFinStartX, finTopY);
+        ctx.lineTo(leftFinEndX, finTopY);
+        ctx.lineTo(leftFinEndX, finBottomY);
+        ctx.lineTo(leftFinStartX, finBottomY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
     
-    for (let i = 0; i < numBlocks; i++) {
-      // Deterministic positioning around the base (no Math.random())
-      const baseAngle = (i * 2 * Math.PI / numBlocks);
-      const angleVariation = Math.sin(i * 1.5) * 0.3; // Deterministic variation
-      const angle = baseAngle + angleVariation;
-      const distance = bodyRadius + (Math.sin(i * 2.3) * 0.3 + 0.5) * finWidth; // Extended distance
-      const finX = centerX + distance * Math.cos(angle);
-      const finY = baseFinY + (Math.sin(i * 1.7) * 0.15 + 0.15) * finHeight * 0.3;
-      
-      // Only draw fins that are in front of the rocket (visible)
-      if (finX > centerX - bodyRadius) {
-        // Deterministic fin dimensions (larger and more visible)
-        const blockWidth = finWidth * (0.8 + Math.sin(i * 3.1) * 0.3);
-        const blockHeight = finThickness * (1.2 + Math.sin(i * 2.7) * 0.4);
-        const rotation = Math.sin(i * 1.9) * 0.2; // Slightly more rotation
+    // Restore canvas context after zoom transformation
+        ctx.restore();
+  };
+
+
+
+
+
+  // drawFins function removed - fins will not be displayed on the main screen
+
+  // Parametric Shape System - Define points for each shape type
+  const SHAPE_DEFINITIONS = {
+    // Nose Cone Shapes
+    'conical': {
+      pointCount: 3,
+      points: (length, diameter) => [
+        { x: 0, y: 0 }, // Tip
+        { x: diameter/2, y: length }, // Base right
+        { x: -diameter/2, y: length }  // Base left
+      ]
+    },
+    'ogive': {
+      pointCount: 8,
+      points: (length, diameter) => {
+        const points = [];
+        const radius = diameter/2;
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * Math.PI) / 7; // 0 to π
+          const x = radius * Math.cos(angle);
+          const y = length * (1 - Math.cos(angle/2)); // Ogive curve
+          points.push({ x, y });
+        }
+        return points;
+      }
+    },
+    'parabolic': {
+      pointCount: 6,
+      points: (length, diameter) => {
+        const points = [];
+        const radius = diameter/2;
+        for (let i = 0; i < 6; i++) {
+          const t = i / 5; // 0 to 1
+          const x = radius * (1 - t);
+          const y = length * t * t; // Parabolic curve
+          points.push({ x, y });
+        }
+        return points;
+      }
+    },
+
+    // Body Tube Shapes
+    'cylinder': {
+      pointCount: 4,
+      points: (length, diameter) => [
+        { x: -diameter/2, y: 0 }, // Top left
+        { x: diameter/2, y: 0 },  // Top right
+        { x: diameter/2, y: length }, // Bottom right
+        { x: -diameter/2, y: length }  // Bottom left
+      ]
+    },
+
+    // Transition Shapes
+    'conical_transition': {
+      pointCount: 4,
+      points: (length, topDiameter, bottomDiameter) => [
+        { x: -topDiameter/2, y: 0 }, // Top left
+        { x: topDiameter/2, y: 0 },  // Top right
+        { x: bottomDiameter/2, y: length }, // Bottom right
+        { x: -bottomDiameter/2, y: length }  // Bottom left
+      ]
+    },
+    'curved_transition': {
+      pointCount: 6,
+      points: (length, topDiameter, bottomDiameter) => {
+        const points = [];
+        const topRadius = topDiameter/2;
+        const bottomRadius = bottomDiameter/2;
+        for (let i = 0; i < 6; i++) {
+          const t = i / 5; // 0 to 1
+          const radius = topRadius + (bottomRadius - topRadius) * t;
+          const x = radius;
+          const y = length * t;
+          points.push({ x, y });
+          if (i > 0) points.push({ x: -radius, y: length * t });
+        }
+        return points;
+      }
+    },
+
+    // Fin Shapes - All oriented to extend outward from rocket body
+    'rectangular_fin': {
+      pointCount: 4,
+      points: (height, width, thickness) => [
+        { x: 0, y: 0 }, // Root leading edge (attached to rocket)
+        { x: width, y: 0 }, // Tip leading edge
+        { x: width, y: height }, // Tip trailing edge
+        { x: 0, y: height }  // Root trailing edge
+      ]
+    },
+    'trapezoidal_fin': {
+      pointCount: 4,
+      points: (height, rootWidth, tipWidth, thickness) => [
+        { x: 0, y: 0 }, // Root leading edge (attached to rocket)
+        { x: tipWidth, y: 0 }, // Tip leading edge (narrower)
+        { x: tipWidth, y: height }, // Tip trailing edge
+        { x: rootWidth, y: height }  // Root trailing edge (wider)
+      ]
+    },
+    'elliptical_fin': {
+      pointCount: 12,
+      points: (height, width, thickness) => {
+        const points = [];
+        const a = width/2; // Semi-major axis (horizontal)
+        const b = height/2; // Semi-minor axis (vertical)
+        for (let i = 0; i < 12; i++) {
+          const angle = (i * Math.PI) / 11; // 0 to π
+          const x = a * Math.cos(angle);
+          const y = b * Math.sin(angle);
+          points.push({ x, y });
+        }
+        return points;
+      }
+    },
+    'delta_fin': {
+      pointCount: 3,
+      points: (height, width, thickness) => [
+        { x: 0, y: 0 }, // Root leading edge (attached to rocket)
+        { x: width, y: 0 }, // Tip leading edge
+        { x: width/2, y: height }  // Trailing edge center (pointed)
+      ]
+    }
+  };
+
+  // Function to draw any parametric shape
+  const drawParametricShape = (ctx, shapeType, variables, position = {x: 0, y: 0}, color = '#8B4513') => {
+    const shapeDef = SHAPE_DEFINITIONS[shapeType];
+    if (!shapeDef) {
+      console.error(`Unknown shape type: ${shapeType}`);
+      return;
+    }
+
+    const points = shapeDef.points(...variables);
         
         ctx.save();
-        ctx.translate(finX, finY);
-        ctx.rotate(rotation);
-        
-        // Draw horizontal block
-        ctx.fillRect(-blockWidth/2, -blockHeight/2, blockWidth, blockHeight);
-        ctx.strokeRect(-blockWidth/2, -blockHeight/2, blockWidth, blockHeight);
-        
-        ctx.restore();
-      }
+    ctx.translate(position.x, position.y);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#654321';
+    ctx.lineWidth = 1;
+    
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
     }
-    } catch (error) {
-      console.error('Error drawing fins:', error);
+    ctx.closePath();
+    
+    ctx.fill();
+    ctx.stroke();
+        ctx.restore();
+  };
+
+  // Function to get shape variables from component
+  const getShapeVariables = (component) => {
+    switch (component.type) {
+      case 'Nose Cone':
+        return [component.length || 60, component.diameter || 20];
+      case 'Body Tube':
+        return [component.length || 60, component.diameter || 20];
+      case 'Transition':
+        return [component.length || 30, component.diameter || 20, component.bottomDiameter || 15];
+      case 'Fins':
+        return [component.finHeight || 25, component.finWidth || 15, component.finThickness || 2];
+      default:
+        return [];
     }
   };
 
@@ -1846,7 +2270,20 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div 
+      className="app-container"
+      onDrop={handleGlobalDrop}
+      onDragOver={(e) => e.preventDefault()}
+      onMouseUp={(e) => {
+        console.log('🌍 Global Mouse Up');
+        console.log('🌍 Global Mouse Up Details:', {
+          type: e.type,
+          target: e.target.className,
+          currentTarget: e.currentTarget.className,
+          draggedComponent: draggedComponent?.name
+        });
+      }}
+    >
       {/* Custom Notifications */}
       <div className="notifications-container">
         {notifications.map(notification => (
@@ -2002,7 +2439,9 @@ function App() {
                     const attachedFins = rocketComponents.filter(comp => 
                       comp.type === 'Fins' && comp.attachedToComponent === component.id
                     );
-                    console.log(`Component ${component.name} (ID: ${component.id}) has ${attachedFins.length} attached fins:`, attachedFins.map(f => f.name));
+                    if (attachedFins.length > 0) {
+                      console.log(`🔗 ${component.name} has ${attachedFins.length} attached fins`);
+                    }
 
                     
 
@@ -2024,8 +2463,9 @@ function App() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, component)}
                           onDragOver={(e) => {
-                            console.log('🎯 DRAG OVER on body component:', index);
+                            console.log('🔄 Component DragOver:', component.name, 'index', index);
                             e.preventDefault(); // This is crucial for drop zones to work!
+                            e.stopPropagation();
                             
                             // Set drop effect based on component type
                             if (draggedComponent?.type === 'Fins' && ['Body Tube', 'Transition'].includes(component.type)) {
@@ -2038,18 +2478,37 @@ function App() {
                           }}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => {
-                            console.log('🎯 DROP EVENT TRIGGERED on body component:', index);
+                            console.log('🎯 DROP EVENT FIRED on', component.name, 'index', index);
+                            console.log('🎯 Drop event details:', {
+                              type: e.type,
+                              target: e.target.className,
+                              currentTarget: e.currentTarget.className,
+                              dataTransfer: e.dataTransfer?.effectAllowed
+                            });
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log('✅ Drop event working! About to call handleDrop');
-                            console.log('🎯 SUCCESS: Drop event fired! Component:', component.name, 'Index:', index);
-                            showNotification('🎯 DROP EVENT WORKING! Component: ' + component.name + ' Index: ' + index, 'info');
                             handleDrop(e, index);
                           }}
-                          onDragEnter={(e) => {
-                            console.log('🚪 DRAG ENTER on body component:', index);
+                          onDragEnd={(e) => {
+                            console.log('🎯 Component DragEnd on', component.name, 'index', index);
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDragEnd(e);
                           }}
-                          onDragEnd={handleDragEnd}
+                          onDragEnter={(e) => {
+                            console.log('🚪 DragEnter:', component.name, 'index', index);
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onMouseUp={(e) => {
+                            console.log('🖱️ Mouse Up on', component.name, 'index', index);
+                            console.log('🖱️ Mouse Up Details:', {
+                              type: e.type,
+                              target: e.target.className,
+                              currentTarget: e.currentTarget.className,
+                              draggedComponent: draggedComponent?.name
+                            });
+                          }}
                           data-drop-target="true"
                         >
                           <span className="tree-arrow">→</span>
@@ -2073,12 +2532,22 @@ function App() {
                           <div 
                             key={fin.id}
                             className={`tree-item sub-item ${selectedComponent?.id === fin.id ? 'selected' : ''} ${draggedComponent?.id === fin.id ? 'dragging' : ''}`}
-                            onClick={() => setSelectedComponent(fin)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleComponentClick(fin, false);
+                            }}
+                            onDoubleClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleComponentClick(fin, true);
+                            }}
                             onMouseEnter={() => setHoveredComponent(fin.id)}
                             onMouseLeave={() => setHoveredComponent(null)}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, fin)}
-                            onDragEnd={handleDragEnd}
+                            // Temporarily disable dragging to test double-click
+                            // draggable
+                            // onDragStart={(e) => handleDragStart(e, fin)}
+                            // onDragEnd={handleDragEnd}
                           >
                             <span className="tree-arrow">  →</span>
                             <span className="tree-label">{fin.name}</span>
@@ -2109,11 +2578,21 @@ function App() {
                     <div 
                       key={component.id}
                       className={`tree-item ${selectedComponent?.id === component.id ? 'selected' : ''} ${draggedComponent?.id === component.id ? 'dragging' : ''}`}
-                      onClick={() => setSelectedComponent(component)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleComponentClick(component, false);
+                      }}
+                      onDoubleClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleComponentClick(component, true);
+                      }}
                       onMouseEnter={() => setHoveredComponent(component.id)}
                       onMouseLeave={() => setHoveredComponent(null)}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, component)}
+                      // Temporarily disable dragging to test double-click
+                      // draggable
+                      // onDragStart={(e) => handleDragStart(e, component)}
                                                 onDragOver={(e) => {
                             // For unattached fins, allow dropping on any body component
                             const bodyComponents = rocketComponents.filter(comp => 
@@ -2373,6 +2852,15 @@ function App() {
                                 placeholder="Enter thickness"
                               />
                             </div>
+                            <div className="config-field">
+                              <label>Fin Offset (cm):</label>
+                              <input 
+                                type="text" 
+                                value={inputValues[`${selectedComponent.id}-finOffset`] || '0'}
+                                onChange={(e) => handleNumberInput(selectedComponent.id, 'finOffset', e.target.value)}
+                                placeholder="Enter offset from bottom"
+                              />
+                            </div>
                             {selectedComponent.finShape === 'swept' && (
                               <div className="config-field">
                                 <label>Sweep Distance (cm):</label>
@@ -2402,6 +2890,72 @@ function App() {
                                   </option>
                                 ))}
                               </select>
+                            </div>
+
+                            {/* Active Fins Configuration */}
+                            <div className="config-section">
+                              <h4>Active Fins</h4>
+                              <div className="config-field">
+                                <label>Enable Active Control:</label>
+                                {console.log('🔍 Rendering Active Fins Checkbox:', {
+                                  selectedComponent: selectedComponent?.name,
+                                  activeFinsEnabled: selectedComponent?.activeFinsEnabled,
+                                  componentId: selectedComponent?.id
+                                })}
+                                <input 
+                                  type="checkbox" 
+                                  checked={selectedComponent.activeFinsEnabled || false}
+                                  onChange={(e) => {
+                                    console.log('🔘 Active Fins Checkbox Clicked:', e.target.checked);
+                                    console.log('🔘 Checkbox Event Details:', {
+                                      type: e.type,
+                                      target: e.target.type,
+                                      checked: e.target.checked,
+                                      componentId: selectedComponent.id
+                                    });
+                                    updateComponent(selectedComponent.id, 'activeFinsEnabled', e.target.checked);
+                                  }}
+                                  onClick={(e) => {
+                                    console.log('🔘 Active Fins Checkbox onClick:', e.target.checked);
+                                    e.stopPropagation();
+                                  }}
+                                />
+                              </div>
+                              
+                              {selectedComponent.activeFinsEnabled && (
+                                <>
+                                  <div className="config-field">
+                                    <label>Motor Power (W):</label>
+                                    <input 
+                                      type="text" 
+                                      value={inputValues[`${selectedComponent.id}-motorPower`] || selectedComponent.motorPower || '50'}
+                                      onChange={(e) => handleNumberInput(selectedComponent.id, 'motorPower', e.target.value)}
+                                      placeholder="Enter motor power"
+                                    />
+                                  </div>
+                                  
+                                  <div className="config-field">
+                                    <label>Max Deflection Angle (°):</label>
+                                    <input 
+                                      type="text" 
+                                      value={inputValues[`${selectedComponent.id}-maxDeflectionAngle`] || selectedComponent.maxDeflectionAngle || '15'}
+                                      onChange={(e) => handleNumberInput(selectedComponent.id, 'maxDeflectionAngle', e.target.value)}
+                                      placeholder="Enter max angle"
+                                    />
+                                  </div>
+                                  
+                                  <div className="config-field">
+                                    <label>Response Speed (Hz):</label>
+                                    <input 
+                                      type="text" 
+                                      value={inputValues[`${selectedComponent.id}-responseSpeed`] || selectedComponent.responseSpeed || '10'}
+                                      onChange={(e) => handleNumberInput(selectedComponent.id, 'responseSpeed', e.target.value)}
+                                      placeholder="Enter response frequency"
+                                    />
+                                  </div>
+                                  
+                                </>
+                              )}
                             </div>
                           </>
                         ) : selectedComponent.type === 'Rail Button' ? (
@@ -2683,18 +3237,6 @@ function App() {
                       </div>
                       
                 <div className="variable-group">
-                  <label>Active Fin Control:</label>
-                        <select 
-                    value={simulationConfig.activeFinControl} 
-                    onChange={(e) => updateSimulationConfig('activeFinControl', e.target.value)}
-                  >
-                    <option value="disabled">Disabled</option>
-                    <option value="enabled">Enabled</option>
-                    <option value="test">Test Mode</option>
-                        </select>
-                      </div>
-                      
-                <div className="variable-group">
                   <label>CFD Time Step (s):</label>
                         <input 
                           type="number" 
@@ -2715,6 +3257,54 @@ function App() {
                           step="1"
                           min="1"
                     max="1000"
+                        />
+                      </div>
+                      
+                <div className="variable-group">
+                  <label>Active Fin Control:</label>
+                        <select 
+                    value={simulationConfig.activeFinControl} 
+                    onChange={(e) => updateSimulationConfig('activeFinControl', e.target.value)}
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="test">Test Mode</option>
+                        </select>
+                      </div>
+                      
+                <div className="variable-group">
+                  <label>Motor Power (W):</label>
+                        <input 
+                          type="number" 
+                    value={simulationConfig.motorPower} 
+                    onChange={(e) => updateSimulationConfig('motorPower', parseInt(e.target.value))}
+                          step="1"
+                          min="0"
+                    max="200"
+                        />
+                      </div>
+                      
+                <div className="variable-group">
+                  <label>Max Deflection Angle (°):</label>
+                        <input 
+                          type="number" 
+                    value={simulationConfig.maxAngle} 
+                    onChange={(e) => updateSimulationConfig('maxAngle', parseInt(e.target.value))}
+                          step="1"
+                          min="1"
+                    max="45"
+                        />
+                      </div>
+                      
+                <div className="variable-group">
+                  <label>Response Speed (Hz):</label>
+                        <input 
+                          type="number" 
+                    value={simulationConfig.responseSpeed} 
+                    onChange={(e) => updateSimulationConfig('responseSpeed', parseInt(e.target.value))}
+                          step="1"
+                          min="1"
+                    max="100"
                         />
                       </div>
                       </div>
@@ -2746,6 +3336,8 @@ function App() {
               <div className="code-editor-container">
                 <textarea
                   className="control-code-editor"
+                  value={simulationConfig.controlCode}
+                  onChange={(e) => updateSimulationConfig('controlCode', e.target.value)}
                   placeholder="// Active Fin Control Algorithm
 // This code runs in real-time during CFD simulation
 // Available variables: attitude, velocity, position, target_trajectory

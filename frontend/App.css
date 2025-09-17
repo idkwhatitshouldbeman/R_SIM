@@ -376,9 +376,10 @@ body {
 
 .main-content {
   flex-grow: 1;
-  padding: 20px;
-  overflow: hidden;
+  padding: 20px 20px 40px 20px;
+  overflow: visible;
   position: relative;
+  height: auto;
 }
 
 /* Tab switching animation */
@@ -629,7 +630,8 @@ body {
   display: grid;
   grid-template-columns: 250px 1fr 300px;
   gap: 20px;
-  height: 100%;
+  height: calc(100vh - 120px);
+  min-height: calc(100vh - 120px);
   animation: slideInFromRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1073,6 +1075,9 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: all 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .right-panel:hover {
@@ -1081,15 +1086,19 @@ body {
 }
 
 .configuration-panel, .add-components-panel {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .component-config {
   flex: 1;
   padding: 15px;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .edit-controls {
@@ -1115,24 +1124,32 @@ body {
 .config-fields {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
 }
 
 .config-field {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.config-field label {
+  font-weight: 500;
+  color: var(--primary-color);
+  font-size: 11px;
 }
 
 .config-field input {
-  width: 100px;
+  width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   font-size: 11px;
-  text-align: right;
+  color: var(--text-color);
+  transition: all 0.2s ease;
 }
 
 .config-field input:focus {
@@ -1147,17 +1164,15 @@ body {
 }
 
 .config-field select {
-  width: 100px;
+  width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   font-size: 11px;
+  color: var(--text-color);
   cursor: pointer;
-}
-
-.config-field select {
-  width: 140px;
+  transition: all 0.2s ease;
 }
 
 .config-field select:focus {
@@ -1183,6 +1198,103 @@ body {
   color: var(--secondary-color);
   margin-top: 2px;
   display: block;
+}
+
+/* Active Fins Configuration Section */
+.config-section {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.config-section h4 {
+  margin: 0 0 10px 0;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(107, 76, 62, 0.3);
+}
+
+.checkbox-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.checkbox-group label:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.config-field input[type="checkbox"] {
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 10;
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+  box-shadow: none !important;
+}
+
+.config-field textarea {
+  width: 100% !important;
+  min-height: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.9);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  resize: vertical;
+  margin-top: 5px;
+}
+
+.config-field textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(107, 76, 62, 0.2);
+}
+
+.config-field textarea::placeholder {
+  color: var(--secondary-color);
+  opacity: 0.7;
 }
 
 .component-categories {
