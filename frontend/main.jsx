@@ -17,6 +17,13 @@ function App() {
     gcpFunctionUrl: GCP_FUNCTION_URL,
     simulationApiUrl: SIMULATION_API_URL
   });
+
+  // Calculate total rocket length from components
+  const calculateRocketLength = () => {
+    return rocketComponents.reduce((total, component) => {
+      return total + (component.length || 0);
+    }, 0);
+  };
   
   const [activeTab, setActiveTab] = useState('builder');
   const [selectedComponent, setSelectedComponent] = useState(null);

@@ -13,11 +13,11 @@
   NODE_VERSION = "18"
   
   # Supabase configuration (will be set in Netlify dashboard)
-  SUPABASE_URL = "https://ovwgplglypjfuqsflyhc.supabase.co"
-  SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92d2dwbGdseXBqZnVxc2ZseWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyOTQ0MDgsImV4cCI6MjA3Mjg3MDQwOH0.YTjAKmshWQ5rFG9an2de8UHu9NA-03U8B6km8XLmjC0"
+  VITE_SUPABASE_URL = "https://ovwgplglypjfuqsflyhc.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92d2dwbGdseXBqZnVxc2ZseWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyOTQ0MDgsImV4cCI6MjA3Mjg3MDQwOH0.YTjAKmshWQ5rFG9an2de8UHu9NA-03U8B6km8XLmjC0"
   
   # Google Cloud Function URL (update with your deployed function)
-  GCP_FUNCTION_URL = "https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator"
+  VITE_GCP_FUNCTION_URL = "https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator"
 
 # Redirect rules for SPA (Single Page Application)
 [[redirects]]
