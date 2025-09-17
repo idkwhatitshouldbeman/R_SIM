@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './App.css';
 
 function App() {
+  // API Configuration - works for both local development and Netlify production
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5011';
+  const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
+  
   const [activeTab, setActiveTab] = useState('builder');
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [clickTimeout, setClickTimeout] = useState(null);
@@ -1112,7 +1116,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   // Active Fin Control API Functions
   const updateActiveFinControlConfig = async (configData) => {
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/config', {
+      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1132,7 +1136,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const startActiveFinControl = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/start', {
+      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1151,7 +1155,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const stopActiveFinControl = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/stop', {
+      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1170,7 +1174,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const testControlAlgorithm = async (testData) => {
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/active-fin-control/test', {
+      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1200,7 +1204,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     });
     
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/simulation/start', {
+      const response = await fetch(`${API_BASE_URL}/api/simulation/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1235,7 +1239,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const stopSimulation = async () => {
     try {
-      await fetch('http://127.0.0.1:5011/api/simulation/stop', {
+      await fetch(`${API_BASE_URL}/api/simulation/stop`, {
         method: 'POST'
       });
       setSimulationRunning(false);
@@ -1253,7 +1257,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     });
     
     try {
-      const response = await fetch('http://127.0.0.1:5011/api/simulation/mesh', {
+      const response = await fetch(`${API_BASE_URL}/api/simulation/mesh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1294,7 +1298,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       }
       
       try {
-        const response = await fetch('http://127.0.0.1:5011/api/simulation/status');
+        const response = await fetch(`${API_BASE_URL}/api/simulation/status`);
         if (response.ok) {
           const status = await response.json();
           setSimulationStatus(status);
