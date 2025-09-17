@@ -3,7 +3,7 @@
 
 [build]
   # Build command for React frontend
-  command = "cd frontend && npm install && npm run build"
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
   
   # Directory where the built files are located
   publish = "frontend/dist"
