@@ -7,6 +7,17 @@ function App() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5011';
   const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
   
+  // Use GCP Function for simulation endpoints in production
+  const SIMULATION_API_URL = import.meta.env.PROD ? GCP_FUNCTION_URL : API_BASE_URL;
+  
+  // Debug logging
+  console.log('🔧 API Configuration:', {
+    isProduction: import.meta.env.PROD,
+    apiBaseUrl: API_BASE_URL,
+    gcpFunctionUrl: GCP_FUNCTION_URL,
+    simulationApiUrl: SIMULATION_API_URL
+  });
+  
   const [activeTab, setActiveTab] = useState('builder');
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [clickTimeout, setClickTimeout] = useState(null);
@@ -1116,7 +1127,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   // Active Fin Control API Functions
   const updateActiveFinControlConfig = async (configData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/config`, {
+      const response = await fetch(`${SIMULATION_API_URL}/api/active-fin-control/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1136,7 +1147,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const startActiveFinControl = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/start`, {
+      const response = await fetch(`${SIMULATION_API_URL}/api/active-fin-control/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1155,7 +1166,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const stopActiveFinControl = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/stop`, {
+      const response = await fetch(`${SIMULATION_API_URL}/api/active-fin-control/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1174,7 +1185,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const testControlAlgorithm = async (testData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/active-fin-control/test`, {
+      const response = await fetch(`${SIMULATION_API_URL}/api/active-fin-control/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1204,7 +1215,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     });
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/simulation/start`, {
+      console.log('🚀 Starting simulation with URL:', SIMULATION_API_URL);
+      const response = await fetch(`${SIMULATION_API_URL}/api/simulation/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1218,7 +1230,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to start simulation');
+        const errorText = await response.text();
+        console.error('❌ Simulation start failed:', response.status, errorText);
+        throw new Error(`Failed to start simulation: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
@@ -1239,7 +1253,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const stopSimulation = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/simulation/stop`, {
+      await fetch(`${SIMULATION_API_URL}/api/simulation/stop`, {
         method: 'POST'
       });
       setSimulationRunning(false);
@@ -1257,7 +1271,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     });
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/simulation/mesh`, {
+      const response = await fetch(`${SIMULATION_API_URL}/api/simulation/mesh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1298,7 +1312,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       }
       
       try {
-        const response = await fetch(`${API_BASE_URL}/api/simulation/status`);
+        const response = await fetch(`${SIMULATION_API_URL}/api/simulation/status`);
         if (response.ok) {
           const status = await response.json();
           setSimulationStatus(status);
