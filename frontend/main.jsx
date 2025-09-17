@@ -49,6 +49,7 @@ function App() {
   };
   const [rocketWeight, setRocketWeight] = useState(0);
   const [rocketCG, setRocketCG] = useState(0);
+  const [cgReference, setCgReference] = useState('bottom'); // 'bottom' or 'top'
   const [inputValues, setInputValues] = useState({});
   const [draggedComponent, setDraggedComponent] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -2651,7 +2652,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 </div>
               </div>
               
-              <div className="properties-section">
+              <div className="properties-section expanded">
                 <div className="panel-header">
                   <h3>Rocket Properties</h3>
                 </div>
@@ -2667,12 +2668,49 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   </div>
                   <div className="property-field">
                     <label>Center of Gravity (cm):</label>
-                    <input 
-                      type="text" 
-                      value={rocketCG}
-                      onChange={(e) => setRocketCG(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                      placeholder="Enter CG"
-                    />
+                    <div className="cg-input-group">
+                      <input 
+                        type="text" 
+                        value={rocketCG}
+                        onChange={(e) => setRocketCG(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                        placeholder="Enter CG"
+                      />
+                      <div className="cg-reference-toggle">
+                        <label className="toggle-label">
+                          <input 
+                            type="radio" 
+                            name="cgReference" 
+                            value="bottom" 
+                            checked={cgReference === 'bottom'}
+                            onChange={(e) => setCgReference(e.target.value)}
+                          />
+                          <span>From Bottom</span>
+                        </label>
+                        <label className="toggle-label">
+                          <input 
+                            type="radio" 
+                            name="cgReference" 
+                            value="top" 
+                            checked={cgReference === 'top'}
+                            onChange={(e) => setCgReference(e.target.value)}
+                          />
+                          <span>From Top</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="property-field">
+                    <label>Rocket Length (cm):</label>
+                    <div className="calculated-value">
+                      {calculateRocketLength().toFixed(1)}
+                    </div>
+                    <small>Calculated from components</small>
+                  </div>
+                  <div className="property-field">
+                    <label>Total Components:</label>
+                    <div className="calculated-value">
+                      {rocketComponents.length}
+                    </div>
                   </div>
                 </div>
               </div>
