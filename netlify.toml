@@ -43,7 +43,7 @@
 # API proxy (if needed for CORS)
 [[redirects]]
   from = "/api/*"
-  to = "https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator/:splat"
+  to = "https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator/api/:splat"
   status = 200
   force = true
   headers = { X-From = "Netlify" }

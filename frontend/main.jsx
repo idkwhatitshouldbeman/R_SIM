@@ -8,14 +8,16 @@ function App() {
   const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
   
   // Use Netlify proxy for simulation endpoints in production to avoid CORS issues
-  const SIMULATION_API_URL = import.meta.env.PROD ? '/api' : API_BASE_URL;
+  const SIMULATION_API_URL = import.meta.env.PROD ? '' : API_BASE_URL;
   
   // Debug logging
   console.log('🔧 API Configuration:', {
     isProduction: import.meta.env.PROD,
     apiBaseUrl: API_BASE_URL,
     gcpFunctionUrl: GCP_FUNCTION_URL,
-    simulationApiUrl: SIMULATION_API_URL
+    simulationApiUrl: SIMULATION_API_URL,
+    environment: import.meta.env.MODE,
+    nodeEnv: import.meta.env.NODE_ENV
   });
 
   // Calculate total rocket length from components
@@ -1223,8 +1225,16 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     });
     
     try {
-      console.log('🚀 Starting simulation with URL:', SIMULATION_API_URL);
-      const response = await fetch(`${SIMULATION_API_URL}/api/simulation/start`, {
+      const fullUrl = `${SIMULATION_API_URL}/api/simulation/start`;
+      console.log('🚀 Starting simulation with URL:', fullUrl);
+      console.log('📊 Simulation data:', {
+        rocketComponents: rocketComponents.length,
+        rocketWeight,
+        rocketCG,
+        simulationConfig: Object.keys(simulationConfig)
+      });
+      
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1237,10 +1247,21 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         })
       });
       
+      console.log('📡 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Simulation start failed:', response.status, errorText);
-        throw new Error(`Failed to start simulation: ${response.status} ${errorText}`);
+        console.error('❌ Simulation start failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: fullUrl,
+          errorText: errorText.substring(0, 500) // Limit error text length
+        });
+        throw new Error(`Failed to start simulation: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -1250,7 +1271,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       pollSimulationStatus();
       
     } catch (error) {
-      console.error('Error starting simulation:', error);
+      console.error('💥 Error starting simulation:', {
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        url: `${SIMULATION_API_URL}/api/simulation/start`,
+        timestamp: new Date().toISOString()
+      });
       setSimulationStatus({
         status: 'Error',
         message: error.message
