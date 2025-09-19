@@ -7,8 +7,8 @@ function App() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5011';
   const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
   
-  // Use GCP Function for simulation endpoints in production
-  const SIMULATION_API_URL = import.meta.env.PROD ? GCP_FUNCTION_URL : API_BASE_URL;
+  // Use Netlify proxy for simulation endpoints in production to avoid CORS issues
+  const SIMULATION_API_URL = import.meta.env.PROD ? '/api' : API_BASE_URL;
   
   // Debug logging
   console.log('🔧 API Configuration:', {
@@ -2667,20 +2667,25 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <div className="property-field">
                     <label>Total Mass (g):</label>
                     <input 
-                      type="text" 
+                      type="number" 
                       value={rocketWeight}
                       onChange={(e) => setRocketWeight(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                       placeholder="Enter mass"
+                      min="0"
+                      step="0.1"
                     />
                   </div>
+                  
                   <div className="property-field">
                     <label>Center of Gravity (cm):</label>
                     <div className="cg-input-group">
                       <input 
-                        type="text" 
+                        type="number" 
                         value={rocketCG}
                         onChange={(e) => setRocketCG(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                         placeholder="Enter CG"
+                        min="0"
+                        step="0.1"
                       />
                       <div className="cg-reference-toggle">
                         <label className="toggle-label">
@@ -2706,6 +2711,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       </div>
                     </div>
                   </div>
+                  
                   <div className="property-field">
                     <label>Rocket Length (cm):</label>
                     <div className="calculated-value">
@@ -2713,6 +2719,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                     <small>Calculated from components</small>
                   </div>
+                  
                   <div className="property-field">
                     <label>Total Components:</label>
                     <div className="calculated-value">
