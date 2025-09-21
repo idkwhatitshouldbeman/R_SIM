@@ -10,15 +10,18 @@ function App() {
   // Use Netlify proxy for simulation endpoints in production to avoid CORS issues
   const SIMULATION_API_URL = import.meta.env.PROD ? '' : API_BASE_URL;
   
-  // Comprehensive Debug Logging
-  console.log('🔧 API Configuration:', {
-    isProduction: import.meta.env.PROD,
-    apiBaseUrl: API_BASE_URL,
-    gcpFunctionUrl: GCP_FUNCTION_URL,
-    simulationApiUrl: SIMULATION_API_URL,
-    environment: import.meta.env.MODE,
-    nodeEnv: import.meta.env.NODE_ENV
-  });
+  // Comprehensive Debug Logging (only log once)
+  if (!window.apiConfigLogged) {
+    console.log('🔧 API Configuration:', {
+      isProduction: import.meta.env.PROD,
+      apiBaseUrl: API_BASE_URL,
+      gcpFunctionUrl: GCP_FUNCTION_URL,
+      simulationApiUrl: SIMULATION_API_URL,
+      environment: import.meta.env.MODE,
+      nodeEnv: import.meta.env.NODE_ENV
+    });
+    window.apiConfigLogged = true;
+  }
 
   // Google Cloud Status Check
   const checkGoogleCloudStatus = async () => {
@@ -84,8 +87,7 @@ function App() {
           return { status: 'active', data: proxyData };
         } catch (jsonError) {
           console.log('⚠️ Netlify proxy returned non-JSON response (likely HTML)');
-          const responseText = await proxyResponse.text();
-          console.log('📄 Response preview:', responseText.substring(0, 200));
+          // Don't try to read the response body again since it's already been consumed
           return { status: 'html_response', error: 'Non-JSON response' };
         }
       } else {
@@ -1424,7 +1426,15 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           url: fullUrl,
           errorText: errorText.substring(0, 500) // Limit error text length
         });
-        throw new Error(`Failed to start simulation: ${response.status} ${response.statusText}`);
+        
+        // Provide specific error messages based on status code
+        if (response.status === 404) {
+          throw new Error(`Simulation service not available (404). Please deploy the Google Cloud Function first.`);
+        } else if (response.status === 500) {
+          throw new Error(`Simulation service error (500). Check the backend logs.`);
+        } else {
+          throw new Error(`Failed to start simulation: ${response.status} ${response.statusText}`);
+        }
       }
       
       const data = await response.json();
@@ -2189,16 +2199,18 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       // finY represents the CENTER of the fin horizontally extending from the body tube
       const finY = attachedComponentBottomY - finOffset;
       
-      // Debug logging for fin positioning
-      console.log('🎯 Fin Positioning Debug:', {
-        finComponent: finComponent.name,
-        attachedTo: attachedComponent.name,
-        attachedComponentBottomY: attachedComponentBottomY,
-        finOffset: finOffset,
-        finalFinY: finY,
-        startY: startY,
-        totalHeight: totalHeight
-      });
+      // Debug logging for fin positioning (reduced frequency)
+      if (Math.random() < 0.1) { // Only log 10% of the time
+        console.log('🎯 Fin Positioning Debug:', {
+          finComponent: finComponent.name,
+          attachedTo: attachedComponent.name,
+          attachedComponentBottomY: attachedComponentBottomY,
+          finOffset: finOffset,
+          finalFinY: finY,
+          startY: startY,
+          totalHeight: totalHeight
+        });
+      }
         
         // Draw horizontal fins extending outward from the body tube
         // Only draw left and right fins (visible from side view)
@@ -2491,13 +2503,10 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       onDrop={handleGlobalDrop}
       onDragOver={(e) => e.preventDefault()}
       onMouseUp={(e) => {
-        console.log('🌍 Global Mouse Up');
-        console.log('🌍 Global Mouse Up Details:', {
-          type: e.type,
-          target: e.target.className,
-          currentTarget: e.currentTarget.className,
-          draggedComponent: draggedComponent?.name
-        });
+        // Reduced logging - only log on specific events
+        if (e.target.classList.contains('component') || e.target.closest('.component')) {
+          console.log('🌍 Global Mouse Up on component');
+        }
       }}
     >
       {/* Custom Notifications */}
