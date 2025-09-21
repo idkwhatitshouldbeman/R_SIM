@@ -1439,9 +1439,16 @@ def start_simulation():
         output_format=simulation_config_data.get('outputFormat', 'vtk')
     )
     
+    # Prepare rocket data for simulation
+    rocket_data = {
+        'components': rocket_components,
+        'weight': rocket_weight,
+        'cg': rocket_cg
+    }
+    
     # Start OpenFOAM simulation
     result = openfoam_manager.submit_cfd_simulation(
-        rocket_components, rocket_weight, rocket_cg, simulation_config
+        rocket_data, simulation_config
     )
     
     if "error" in result:
