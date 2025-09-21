@@ -10,7 +10,7 @@ function App() {
   // Use Netlify proxy for simulation endpoints in production to avoid CORS issues
   const SIMULATION_API_URL = import.meta.env.PROD ? '' : API_BASE_URL;
   
-  // Debug logging
+  // Comprehensive Debug Logging
   console.log('🔧 API Configuration:', {
     isProduction: import.meta.env.PROD,
     apiBaseUrl: API_BASE_URL,
@@ -19,6 +19,153 @@ function App() {
     environment: import.meta.env.MODE,
     nodeEnv: import.meta.env.NODE_ENV
   });
+
+  // Google Cloud Status Check
+  const checkGoogleCloudStatus = async () => {
+    console.log('☁️ === GOOGLE CLOUD STATUS CHECK ===');
+    
+    try {
+      // Test 1: Check if GCP Function URL is reachable
+      console.log('🔍 Test 1: Checking GCP Function URL reachability...');
+      const healthUrl = `${GCP_FUNCTION_URL}/health`;
+      console.log('📍 Health check URL:', healthUrl);
+      
+      const healthResponse = await fetch(healthUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 Health response status:', healthResponse.status);
+      console.log('📡 Health response headers:', Object.fromEntries(healthResponse.headers.entries()));
+      
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        console.log('✅ GCP Function is ACTIVE and responding!');
+        console.log('📊 Health data:', healthData);
+        return { status: 'active', data: healthData };
+      } else {
+        console.log('❌ GCP Function returned error:', healthResponse.status);
+        const errorText = await healthResponse.text();
+        console.log('📄 Error response:', errorText.substring(0, 200));
+        return { status: 'error', error: healthResponse.status };
+      }
+    } catch (error) {
+      console.log('💥 GCP Function connection failed:', error.message);
+      console.log('🔍 Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.substring(0, 300)
+      });
+      return { status: 'offline', error: error.message };
+    }
+  };
+
+  // Test 2: Check Netlify proxy
+  const checkNetlifyProxy = async () => {
+    console.log('🌐 === NETLIFY PROXY CHECK ===');
+    
+    try {
+      const proxyUrl = '/api/health';
+      console.log('📍 Proxy URL:', proxyUrl);
+      
+      const proxyResponse = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 Proxy response status:', proxyResponse.status);
+      console.log('📡 Proxy response headers:', Object.fromEntries(proxyResponse.headers.entries()));
+      
+      if (proxyResponse.ok) {
+        const proxyData = await proxyResponse.json();
+        console.log('✅ Netlify proxy is working!');
+        console.log('📊 Proxy data:', proxyData);
+        return { status: 'active', data: proxyData };
+      } else {
+        console.log('❌ Netlify proxy returned error:', proxyResponse.status);
+        const errorText = await proxyResponse.text();
+        console.log('📄 Proxy error response:', errorText.substring(0, 200));
+        return { status: 'error', error: proxyResponse.status };
+      }
+    } catch (error) {
+      console.log('💥 Netlify proxy connection failed:', error.message);
+      return { status: 'offline', error: error.message };
+    }
+  };
+
+  // Test 3: Check local backend (if in development)
+  const checkLocalBackend = async () => {
+    if (import.meta.env.PROD) {
+      console.log('🏠 Skipping local backend check (production mode)');
+      return { status: 'skipped' };
+    }
+    
+    console.log('🏠 === LOCAL BACKEND CHECK ===');
+    
+    try {
+      const localUrl = `${API_BASE_URL}/health`;
+      console.log('📍 Local backend URL:', localUrl);
+      
+      const localResponse = await fetch(localUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('📡 Local backend response status:', localResponse.status);
+      
+      if (localResponse.ok) {
+        const localData = await localResponse.json();
+        console.log('✅ Local backend is running!');
+        console.log('📊 Local backend data:', localData);
+        return { status: 'active', data: localData };
+      } else {
+        console.log('❌ Local backend returned error:', localResponse.status);
+        return { status: 'error', error: localResponse.status };
+      }
+    } catch (error) {
+      console.log('💥 Local backend connection failed:', error.message);
+      return { status: 'offline', error: error.message };
+    }
+  };
+
+  // Run all status checks
+  const runAllStatusChecks = async () => {
+    console.log('🚀 === COMPREHENSIVE SYSTEM STATUS CHECK ===');
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    
+    const results = {
+      gcp: await checkGoogleCloudStatus(),
+      netlify: await checkNetlifyProxy(),
+      local: await checkLocalBackend()
+    };
+    
+    console.log('📊 === FINAL STATUS SUMMARY ===');
+    console.log('☁️ Google Cloud Function:', results.gcp.status);
+    console.log('🌐 Netlify Proxy:', results.netlify.status);
+    console.log('🏠 Local Backend:', results.local.status);
+    
+    // Overall system status
+    const hasWorkingBackend = results.gcp.status === 'active' || 
+                             results.netlify.status === 'active' || 
+                             results.local.status === 'active';
+    
+    console.log('🎯 Overall System Status:', hasWorkingBackend ? '✅ READY' : '❌ NOT READY');
+    
+    if (!hasWorkingBackend) {
+      console.log('⚠️ WARNING: No backend services are available!');
+      console.log('🔧 Troubleshooting steps:');
+      console.log('1. Deploy Google Cloud Function: py deploy_gcp_function.py');
+      console.log('2. Start local backend: py backend/f_backend.py');
+      console.log('3. Check Netlify proxy configuration');
+    }
+    
+    return results;
+  };
+
+  // Run status checks on component mount
+  React.useEffect(() => {
+    runAllStatusChecks();
+  }, []);
 
   // Calculate total rocket length from components
   const calculateRocketLength = () => {
@@ -2402,6 +2549,23 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     >
                   <span className="button-icon">🚀</span>
                   <span className="button-text">Start Simulation</span>
+                    </button>
+                    
+                    <button 
+                      onClick={runAllStatusChecks}
+                      className="debug-status-btn"
+                      style={{
+                        marginLeft: '10px',
+                        padding: '8px 16px',
+                        backgroundColor: '#6366f1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      🔍 Check System Status
                     </button>
                 
                 <div className="simulation-info">
