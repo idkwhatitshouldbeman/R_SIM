@@ -77,10 +77,17 @@ function App() {
       console.log('📡 Proxy response headers:', Object.fromEntries(proxyResponse.headers.entries()));
       
       if (proxyResponse.ok) {
-        const proxyData = await proxyResponse.json();
-        console.log('✅ Netlify proxy is working!');
-        console.log('📊 Proxy data:', proxyData);
-        return { status: 'active', data: proxyData };
+        try {
+          const proxyData = await proxyResponse.json();
+          console.log('✅ Netlify proxy is working!');
+          console.log('📊 Proxy data:', proxyData);
+          return { status: 'active', data: proxyData };
+        } catch (jsonError) {
+          console.log('⚠️ Netlify proxy returned non-JSON response (likely HTML)');
+          const responseText = await proxyResponse.text();
+          console.log('📄 Response preview:', responseText.substring(0, 200));
+          return { status: 'html_response', error: 'Non-JSON response' };
+        }
       } else {
         console.log('❌ Netlify proxy returned error:', proxyResponse.status);
         const errorText = await proxyResponse.text();
@@ -149,6 +156,9 @@ function App() {
                              results.netlify.status === 'active' || 
                              results.local.status === 'active';
     
+    // Check if Netlify proxy is returning HTML (function not deployed)
+    const netlifyProxyIssue = results.netlify.status === 'html_response';
+    
     console.log('🎯 Overall System Status:', hasWorkingBackend ? '✅ READY' : '❌ NOT READY');
     
     if (!hasWorkingBackend) {
@@ -157,6 +167,12 @@ function App() {
       console.log('1. Deploy Google Cloud Function: py deploy_gcp_function.py');
       console.log('2. Start local backend: py backend/f_backend.py');
       console.log('3. Check Netlify proxy configuration');
+    }
+    
+    if (netlifyProxyIssue) {
+      console.log('🔍 DIAGNOSIS: Netlify proxy is working but Google Cloud Function is not deployed');
+      console.log('💡 SOLUTION: The function needs to be deployed to Google Cloud');
+      console.log('📋 COMMAND: py deploy_gcp_function.py');
     }
     
     return results;
@@ -2911,12 +2927,6 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     <small>Calculated from components</small>
                   </div>
                   
-                  <div className="property-field">
-                    <label>Total Components:</label>
-                    <div className="calculated-value">
-                      {rocketComponents.length}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -3485,43 +3495,6 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
             </div>
             
                 <div className="variable-group">
-                        <label>Solver Type:</label>
-                        <select 
-                          value={simulationConfig.solverType} 
-                          onChange={(e) => updateSimulationConfig('solverType', e.target.value)}
-                        >
-                          <option value="pimpleFoam">PIMPLE (Compressible)</option>
-                          <option value="interFoam">InterFoam (Multiphase)</option>
-                          <option value="rhoPimpleFoam">RhoPimpleFoam (Density-based)</option>
-                    <option value="simpleFoam">SIMPLE (Steady-state)</option>
-                        </select>
-                      </div>
-                      
-                <div className="variable-group">
-                  <label>CFD Time Step (s):</label>
-                        <input 
-                          type="number" 
-                    value={simulationConfig.cfdTimeStep} 
-                    onChange={(e) => updateSimulationConfig('cfdTimeStep', parseFloat(e.target.value))}
-                          step="0.001"
-                          min="0.001"
-                    max="0.1"
-                        />
-                      </div>
-                      
-                <div className="variable-group">
-                  <label>Control Update Rate (Hz):</label>
-                        <input 
-                          type="number" 
-                    value={simulationConfig.controlUpdateRate} 
-                    onChange={(e) => updateSimulationConfig('controlUpdateRate', parseInt(e.target.value))}
-                          step="1"
-                          min="1"
-                    max="1000"
-                        />
-                      </div>
-                      
-                <div className="variable-group">
                   <label>Active Fin Control:</label>
                         <select 
                     value={simulationConfig.activeFinControl} 
@@ -3531,42 +3504,6 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     <option value="enabled">Enabled</option>
                     <option value="test">Test Mode</option>
                         </select>
-                      </div>
-                      
-                <div className="variable-group">
-                  <label>Motor Power (W):</label>
-                        <input 
-                          type="number" 
-                    value={simulationConfig.motorPower} 
-                    onChange={(e) => updateSimulationConfig('motorPower', parseInt(e.target.value))}
-                          step="1"
-                          min="0"
-                    max="200"
-                        />
-                      </div>
-                      
-                <div className="variable-group">
-                  <label>Max Deflection Angle (°):</label>
-                        <input 
-                          type="number" 
-                    value={simulationConfig.maxAngle} 
-                    onChange={(e) => updateSimulationConfig('maxAngle', parseInt(e.target.value))}
-                          step="1"
-                          min="1"
-                    max="45"
-                        />
-                      </div>
-                      
-                <div className="variable-group">
-                  <label>Response Speed (Hz):</label>
-                        <input 
-                          type="number" 
-                    value={simulationConfig.responseSpeed} 
-                    onChange={(e) => updateSimulationConfig('responseSpeed', parseInt(e.target.value))}
-                          step="1"
-                          min="1"
-                    max="100"
-                        />
                       </div>
                       </div>
                     </div>
