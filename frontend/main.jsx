@@ -7,8 +7,8 @@ function App() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5011';
   const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
   
-  // Use Netlify proxy for simulation endpoints in production to avoid CORS issues
-  const SIMULATION_API_URL = import.meta.env.PROD ? '' : API_BASE_URL;
+  // Use local backend for now since Cloud Function deployment is having issues
+  const SIMULATION_API_URL = 'http://localhost:5011';
   
   // Comprehensive Debug Logging (only log once)
   if (!window.apiConfigLogged) {

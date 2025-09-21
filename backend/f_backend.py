@@ -1440,7 +1440,7 @@ def start_simulation():
     )
     
     # Start OpenFOAM simulation
-    result = openfoam_manager.start_simulation(
+    result = openfoam_manager.submit_cfd_simulation(
         rocket_components, rocket_weight, rocket_cg, simulation_config
     )
     

@@ -270,7 +270,8 @@ def api_simulation_stop():
 
 if __name__ == "__main__":
     # For local testing
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port, debug=True)
 '''
     
     with open("main.py", "w") as f:
