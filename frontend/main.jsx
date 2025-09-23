@@ -345,6 +345,12 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   const [stlProcessing, setStlProcessing] = useState(false);
   const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
   
+  // Motor search state
+  const [showMotorSearch, setShowMotorSearch] = useState(false);
+  const [motorSearchResults, setMotorSearchResults] = useState([]);
+  const [motorSearchQuery, setMotorSearchQuery] = useState('');
+  const [selectedMotor, setSelectedMotor] = useState(null);
+  
   // Custom notification system
   const [notifications, setNotifications] = useState([]);
   const [currentWeatherNotification, setCurrentWeatherNotification] = useState(null);
@@ -528,6 +534,64 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     }
   };
 
+  // Motor search function (mock for now - will integrate with ThrustCurve API)
+  const searchMotors = async (query) => {
+    console.log('🔍 Searching for motors:', query);
+    
+    // Mock motor data - will be replaced with ThrustCurve API
+    const mockMotors = [
+      {
+        id: 'estes-c6-5',
+        manufacturer: 'Estes',
+        model: 'C6-5',
+        impulse: 'C',
+        thrust: 6,
+        burnTime: 1.6,
+        totalImpulse: 10,
+        delay: 5,
+        weight: 16.8,
+        diameter: 18,
+        length: 70
+      },
+      {
+        id: 'estes-d12-5',
+        manufacturer: 'Estes',
+        model: 'D12-5',
+        impulse: 'D',
+        thrust: 12,
+        burnTime: 1.8,
+        totalImpulse: 20,
+        delay: 5,
+        weight: 24.5,
+        diameter: 18,
+        length: 70
+      },
+      {
+        id: 'aerotech-e30-4',
+        manufacturer: 'AeroTech',
+        model: 'E30-4',
+        impulse: 'E',
+        thrust: 30,
+        burnTime: 1.2,
+        totalImpulse: 30,
+        delay: 4,
+        weight: 35.2,
+        diameter: 18,
+        length: 70
+      }
+    ];
+    
+    // Filter motors based on query
+    const filtered = mockMotors.filter(motor => 
+      motor.manufacturer.toLowerCase().includes(query.toLowerCase()) ||
+      motor.model.toLowerCase().includes(query.toLowerCase()) ||
+      motor.impulse.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    setMotorSearchResults(filtered);
+    return filtered;
+  };
+
   const addComponent = (type) => {
     // Find the last body tube to attach fins to
     let attachedToComponent = null;
@@ -547,14 +611,14 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       id: Date.now(),
       type,
       name: `${type} ${existingCount + 1}`,
-      length: type === 'Transition' ? 30 : type === 'Nose Cone' ? 40 : type === 'Fins' ? 0 : type === 'Rail Button' ? 8 : 60,
-      diameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : 20,
-      topDiameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : 20,
-      bottomDiameter: type === 'Transition' ? 15 : type === 'Rail Button' ? 4 : 20,
-      lengthInput: type === 'Transition' ? '30' : type === 'Nose Cone' ? '40' : type === 'Fins' ? '0' : type === 'Rail Button' ? '8' : '60',
-      diameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : '20',
-      topDiameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : '20',
-      bottomDiameterInput: type === 'Transition' ? '15' : type === 'Rail Button' ? '4' : '20',
+      length: type === 'Transition' ? 30 : type === 'Nose Cone' ? 40 : type === 'Fins' ? 0 : type === 'Rail Button' ? 8 : type === 'Motor' ? 70 : 60,
+      diameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : type === 'Motor' ? 18 : 20,
+      topDiameter: type === 'Transition' ? 20 : type === 'Rail Button' ? 4 : type === 'Motor' ? 18 : 20,
+      bottomDiameter: type === 'Transition' ? 15 : type === 'Rail Button' ? 4 : type === 'Motor' ? 18 : 20,
+      lengthInput: type === 'Transition' ? '30' : type === 'Nose Cone' ? '40' : type === 'Fins' ? '0' : type === 'Rail Button' ? '8' : type === 'Motor' ? '70' : '60',
+      diameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : type === 'Motor' ? '18' : '20',
+      topDiameterInput: type === 'Transition' ? '20' : type === 'Rail Button' ? '4' : type === 'Motor' ? '18' : '20',
+      bottomDiameterInput: type === 'Transition' ? '15' : type === 'Rail Button' ? '4' : type === 'Motor' ? '18' : '20',
       noseShape: type === 'Nose Cone' ? 'conical' : null,
       tipLength: type === 'Nose Cone' ? 15 : null,
       finShape: type === 'Fins' ? 'rectangular' : null,
@@ -567,9 +631,51 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       railButtonHeight: type === 'Rail Button' ? 8 : null,
       railButtonWidth: type === 'Rail Button' ? 4 : null,
       railButtonOffset: type === 'Rail Button' ? 2 : null,
+      // Motor properties
+      motorType: type === 'Motor' ? 'Estes' : null,
+      motorModel: type === 'Motor' ? 'C6-5' : null,
+      motorImpulse: type === 'Motor' ? 'C' : null,
+      motorThrust: type === 'Motor' ? 6 : null,
+      motorBurnTime: type === 'Motor' ? 1.6 : null,
+      motorTotalImpulse: type === 'Motor' ? 10 : null,
+      motorDelay: type === 'Motor' ? 5 : null,
+      motorWeight: type === 'Motor' ? 16.8 : null,
       attachedToComponent: type === 'Fins' ? attachedToComponent : null
     };
     setRocketComponents([...rocketComponents, newComponent]);
+  };
+
+  const addMotorFromSearch = (motorData) => {
+    const existingCount = rocketComponents.filter(comp => comp.type === 'Motor').length;
+    
+    const newMotor = {
+      id: Date.now(),
+      type: 'Motor',
+      name: `${motorData.manufacturer} ${motorData.model}`,
+      length: motorData.length,
+      diameter: motorData.diameter,
+      topDiameter: motorData.diameter,
+      bottomDiameter: motorData.diameter,
+      lengthInput: motorData.length.toString(),
+      diameterInput: motorData.diameter.toString(),
+      topDiameterInput: motorData.diameter.toString(),
+      bottomDiameterInput: motorData.diameter.toString(),
+      // Motor properties from search
+      motorType: motorData.manufacturer,
+      motorModel: motorData.model,
+      motorImpulse: motorData.impulse,
+      motorThrust: motorData.thrust,
+      motorBurnTime: motorData.burnTime,
+      motorTotalImpulse: motorData.totalImpulse,
+      motorDelay: motorData.delay,
+      motorWeight: motorData.weight,
+      motorId: motorData.id
+    };
+    
+    setRocketComponents([...rocketComponents, newMotor]);
+    setShowMotorSearch(false);
+    setSelectedMotor(null);
+    showNotification(`Motor added: ${motorData.manufacturer} ${motorData.model}`, 'success');
   };
 
   const importSTL = (event) => {
@@ -3393,6 +3499,20 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                     
                     <div className="category">
+                      <h4>Motors</h4>
+                      <div className="component-grid">
+                        <button className="component-btn" onClick={() => addComponent('Motor')}>
+                          <div className="component-icon motor"></div>
+                          Motor
+                        </button>
+                        <button className="component-btn search-btn" onClick={() => setShowMotorSearch(true)}>
+                          <div className="component-icon search-icon"></div>
+                          Search Motors
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="category">
                       <div className="component-grid full-width">
                         <button className="component-btn stl-import-btn full-width-btn" onClick={() => fileInputRef.current.click()}>
                           <div className="component-icon stl-icon"></div>
@@ -3969,6 +4089,92 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           </div>
         )}
       </main>
+
+      {/* Motor Search Modal */}
+      {showMotorSearch && (
+        <div className="modal-overlay" onClick={() => setShowMotorSearch(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Search Motors</h2>
+              <button className="modal-close" onClick={() => setShowMotorSearch(false)}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="search-input-group">
+                <input
+                  type="text"
+                  placeholder="Search by manufacturer, model, or impulse class..."
+                  value={motorSearchQuery}
+                  onChange={(e) => {
+                    setMotorSearchQuery(e.target.value);
+                    searchMotors(e.target.value);
+                  }}
+                  className="search-input"
+                />
+                <button 
+                  className="search-btn"
+                  onClick={() => searchMotors(motorSearchQuery)}
+                >
+                  Search
+                </button>
+              </div>
+              
+              <div className="motor-results">
+                {motorSearchResults.length > 0 ? (
+                  <div className="motor-grid">
+                    {motorSearchResults.map((motor) => (
+                      <div key={motor.id} className="motor-card">
+                        <div className="motor-header">
+                          <h3>{motor.manufacturer} {motor.model}</h3>
+                          <span className="impulse-class">{motor.impulse}</span>
+                        </div>
+                        <div className="motor-specs">
+                          <div className="spec-row">
+                            <span>Thrust:</span>
+                            <span>{motor.thrust} N</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Burn Time:</span>
+                            <span>{motor.burnTime} s</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Total Impulse:</span>
+                            <span>{motor.totalImpulse} Ns</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Weight:</span>
+                            <span>{motor.weight} g</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Diameter:</span>
+                            <span>{motor.diameter} mm</span>
+                          </div>
+                        </div>
+                        <button 
+                          className="add-motor-btn"
+                          onClick={() => addMotorFromSearch(motor)}
+                        >
+                          Add Motor
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : motorSearchQuery ? (
+                  <div className="no-results">
+                    <p>No motors found for "{motorSearchQuery}"</p>
+                    <p>Try searching for: Estes, AeroTech, C, D, E</p>
+                  </div>
+                ) : (
+                  <div className="search-prompt">
+                    <p>Enter a search term to find motors</p>
+                    <p>Examples: "Estes C6", "AeroTech E30", "D12"</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

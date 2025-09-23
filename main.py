@@ -124,17 +124,17 @@ def api_simulation_status():
                 sim_data["message"] = "Mesh generation in progress..."
                 print("🔄 Status updated: initializing → running")
         elif sim_data["status"] == "running":
-            if elapsed_time > 4:
-                sim_data["progress"] = 30
-                sim_data["message"] = "CFD solver running..."
-            elif elapsed_time > 6:
-                sim_data["progress"] = 60
-                sim_data["message"] = "Post-processing results..."
-            elif elapsed_time > 8:
+            if elapsed_time > 8:
                 sim_data["status"] = "completed"
                 sim_data["progress"] = 100
                 sim_data["message"] = "Simulation completed successfully!"
                 print("✅ Status updated: running → completed")
+            elif elapsed_time > 6:
+                sim_data["progress"] = 60
+                sim_data["message"] = "Post-processing results..."
+            elif elapsed_time > 4:
+                sim_data["progress"] = 30
+                sim_data["message"] = "CFD solver running..."
         
         # Update last update time
         sim_data["last_update"] = time.time()
