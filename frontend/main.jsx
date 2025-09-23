@@ -8,7 +8,7 @@ function App() {
   const GCP_FUNCTION_URL = import.meta.env.VITE_GCP_FUNCTION_URL || 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator';
   
   // Use local backend for now since Cloud Function deployment is having issues
-  const SIMULATION_API_URL = import.meta.env.PROD ? '' : 'http://localhost:5011';
+  const SIMULATION_API_URL = import.meta.env.PROD ? 'https://us-central1-centered-scion-471523-a4.cloudfunctions.net/rocket-cfd-simulator' : 'http://localhost:5011';
   
   // Comprehensive Debug Logging (only log once)
   if (!window.apiConfigLogged) {
