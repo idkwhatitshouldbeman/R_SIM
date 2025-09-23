@@ -541,6 +541,38 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     // Mock motor data - will be replaced with ThrustCurve API
     const mockMotors = [
       {
+        id: 'estes-a8-3',
+        manufacturer: 'Estes',
+        model: 'A8-3',
+        impulse: 'A',
+        thrust: 2.5,
+        burnTime: 0.5,
+        totalImpulse: 2.5,
+        delay: 3,
+        weight: 7.4,
+        diameter: 18,
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 3.99
+      },
+      {
+        id: 'estes-b6-4',
+        manufacturer: 'Estes',
+        model: 'B6-4',
+        impulse: 'B',
+        thrust: 5,
+        burnTime: 0.7,
+        totalImpulse: 5,
+        delay: 4,
+        weight: 10.5,
+        diameter: 18,
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 4.99
+      },
+      {
         id: 'estes-c6-5',
         manufacturer: 'Estes',
         model: 'C6-5',
@@ -551,7 +583,10 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         delay: 5,
         weight: 16.8,
         diameter: 18,
-        length: 70
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 5.99
       },
       {
         id: 'estes-d12-5',
@@ -564,7 +599,10 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         delay: 5,
         weight: 24.5,
         diameter: 18,
-        length: 70
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 7.99
       },
       {
         id: 'aerotech-e30-4',
@@ -577,7 +615,58 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         delay: 4,
         weight: 35.2,
         diameter: 18,
-        length: 70
+        length: 70,
+        propellant: 'Composite',
+        certification: 'NAR/TRA',
+        price: 12.99
+      },
+      {
+        id: 'aerotech-f20-4',
+        manufacturer: 'AeroTech',
+        model: 'F20-4',
+        impulse: 'F',
+        thrust: 20,
+        burnTime: 2.5,
+        totalImpulse: 40,
+        delay: 4,
+        weight: 45.8,
+        diameter: 18,
+        length: 70,
+        propellant: 'Composite',
+        certification: 'NAR/TRA',
+        price: 15.99
+      },
+      {
+        id: 'quest-c12-4',
+        manufacturer: 'Quest',
+        model: 'C12-4',
+        impulse: 'C',
+        thrust: 12,
+        burnTime: 0.8,
+        totalImpulse: 10,
+        delay: 4,
+        weight: 16.2,
+        diameter: 18,
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 5.49
+      },
+      {
+        id: 'quest-d16-4',
+        manufacturer: 'Quest',
+        model: 'D16-4',
+        impulse: 'D',
+        thrust: 16,
+        burnTime: 1.2,
+        totalImpulse: 20,
+        delay: 4,
+        weight: 23.1,
+        diameter: 18,
+        length: 70,
+        propellant: 'Black Powder',
+        certification: 'NAR/TRA',
+        price: 7.49
       }
     ];
     
@@ -599,7 +688,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     let attachedToComponent = null;
     if (type === 'Fins') {
       const bodyComponents = rocketComponents.filter(comp => 
-        ['Body Tube', 'Transition'].includes(comp.type)
+        ['Body Tube', 'Transition', 'Motor'].includes(comp.type)
       );
       if (bodyComponents.length > 0) {
         attachedToComponent = bodyComponents[bodyComponents.length - 1].id;
@@ -673,6 +762,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       motorTotalImpulse: motorData.totalImpulse,
       motorDelay: motorData.delay,
       motorWeight: motorData.weight,
+      motorPropellant: motorData.propellant,
+      motorCertification: motorData.certification,
+      motorPrice: motorData.price,
       motorId: motorData.id
     };
     
@@ -2058,7 +2150,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     
     // Get body components only (for built rockets)
     const bodyComponents = rocketComponents.filter(comp => 
-      ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
+      ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
     );
 
     if (bodyComponents.length === 0) return;
@@ -2317,7 +2409,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       // If no specific attachment, find the last body tube
       if (!attachedComponent) {
         const bodyComponents = rocketComponents.filter(comp => 
-          ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
+          ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
         );
         if (bodyComponents.length === 0) return;
         attachedComponent = bodyComponents[bodyComponents.length - 1];
@@ -2325,7 +2417,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       
       // Calculate position relative to the attached component
       const bodyComponents = rocketComponents.filter(comp => 
-        ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
+        ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
       );
       const totalHeight = bodyComponents.reduce((sum, comp) => sum + (comp.length || 60), 0);
       const startY = (canvas.height - totalHeight) / 2;
@@ -2827,7 +2919,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   </div>
                   {/* Render body components first, then show their attached fins */}
                   {rocketComponents.filter(comp => 
-                    ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
+                    ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
                   ).map((component, index) => {
                     // Check if this component has fins attached to it
                     const attachedFins = rocketComponents.filter(comp => 
@@ -3506,20 +3598,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       <h4>Motors</h4>
                       <div className="component-grid">
                         <button className="component-btn" onClick={() => {
-                          console.log('🔧 Motor button clicked - adding motor component');
-                          addComponent('Motor');
-                        }}>
-                          <div className="component-icon motor"></div>
-                          Motor
-                        </button>
-                        <button className="component-btn search-btn" onClick={() => {
-                          console.log('🔍 Search Motors button clicked - opening search modal');
+                          console.log('🔧 Motor button clicked - opening search modal');
                           console.log('🔍 Current showMotorSearch state:', showMotorSearch);
                           setShowMotorSearch(true);
                           console.log('🔍 Set showMotorSearch to true');
                         }}>
-                          <div className="component-icon search-icon"></div>
-                          Search Motors
+                          <div className="component-icon motor"></div>
+                          Motor
                         </button>
                       </div>
                     </div>
@@ -4161,6 +4246,18 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                           <div className="spec-row">
                             <span>Diameter:</span>
                             <span>{motor.diameter} mm</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Length:</span>
+                            <span>{motor.length} mm</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Propellant:</span>
+                            <span>{motor.propellant}</span>
+                          </div>
+                          <div className="spec-row">
+                            <span>Price:</span>
+                            <span>${motor.price}</span>
                           </div>
                         </div>
                         <button 
