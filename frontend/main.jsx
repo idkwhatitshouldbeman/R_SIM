@@ -340,6 +340,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationStatus, setSimulationStatus] = useState(null);
+  const [currentSimulationId, setCurrentSimulationId] = useState(null);
   const [stlProcessing, setStlProcessing] = useState(false);
   const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
   
@@ -1439,9 +1440,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       
       const data = await response.json();
       console.log('🚀 Simulation started:', data.message);
+      console.log('🆔 Simulation ID:', data.simulation_id);
+      
+      // Store simulation ID for status polling
+      setCurrentSimulationId(data.simulation_id);
       
       // Start polling for status updates
-      pollSimulationStatus();
+      pollSimulationStatus(data.simulation_id);
       
     } catch (error) {
       console.error('💥 Error starting simulation:', {
@@ -1512,28 +1517,47 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     }
   };
 
-  const pollSimulationStatus = async () => {
+  const pollSimulationStatus = (simulationId) => {
+    console.log('🔄 Starting status polling for simulation:', simulationId);
+    
     const pollInterval = setInterval(async () => {
       if (!simulationRunning) {
+        console.log('🛑 Stopping status polling - simulation not running');
         clearInterval(pollInterval);
         return;
       }
       
       try {
-        const response = await fetch(`${SIMULATION_API_URL}/api/simulation/status`);
+        console.log('📊 Polling status for simulation:', simulationId);
+        const response = await fetch(`${SIMULATION_API_URL}/api/simulation/status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            simulation_id: simulationId
+          })
+        });
+        
+        console.log('📡 Status response:', response.status);
+        
         if (response.ok) {
           const status = await response.json();
+          console.log('📊 Status update:', status);
           setSimulationStatus(status);
           
-          if (status.status === 'Complete' || status.status === 'Error') {
+          if (status.status === 'completed' || status.status === 'error' || status.status === 'stopped') {
+            console.log('✅ Simulation finished with status:', status.status);
             setSimulationRunning(false);
             clearInterval(pollInterval);
           }
+        } else {
+          console.error('❌ Status check failed:', response.status, response.statusText);
         }
       } catch (error) {
-        console.error('Error polling simulation status:', error);
+        console.error('💥 Error polling simulation status:', error);
       }
-    }, 1000);
+    }, 2000); // Poll every 2 seconds
   };
 
   const handleNumberInput = (id, field, value) => {
