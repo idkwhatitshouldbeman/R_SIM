@@ -2382,6 +2382,53 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           ctx.strokeRect(x, currentY, diameter, height);
           ctx.setLineDash([]);
         }
+      } else if (component.type === 'Motor') {
+        // Draw motor as a cylindrical component with motor details
+        const diameter = component.diameter || 18;
+        const x = centerX - diameter / 2;
+        
+        // Motor body (darker color to distinguish from body tubes)
+        ctx.fillStyle = '#2C3E50';
+        ctx.strokeStyle = '#1A252F';
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, currentY, diameter, height);
+        ctx.strokeRect(x, currentY, diameter, height);
+        
+        // Motor nozzle (smaller diameter at bottom)
+        const nozzleDiameter = diameter * 0.6;
+        const nozzleX = centerX - nozzleDiameter / 2;
+        const nozzleHeight = height * 0.2;
+        
+        ctx.fillStyle = '#34495E';
+        ctx.fillRect(nozzleX, currentY + height - nozzleHeight, nozzleDiameter, nozzleHeight);
+        ctx.strokeRect(nozzleX, currentY + height - nozzleHeight, nozzleDiameter, nozzleHeight);
+        
+        // Motor label
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        const motorModel = component.motorModel || 'Motor';
+        ctx.fillText(motorModel, centerX, currentY + height / 2);
+        
+        // Add some motor details (thrust lines)
+        ctx.strokeStyle = '#E74C3C';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          const lineX = centerX - diameter / 4 + (i * diameter / 4);
+          ctx.beginPath();
+          ctx.moveTo(lineX, currentY + height - nozzleHeight);
+          ctx.lineTo(lineX, currentY + height + 5);
+          ctx.stroke();
+        }
+        
+        // Highlight if selected
+        if (selectedComponent?.id === component.id) {
+          ctx.strokeStyle = '#00FF00';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(x, currentY, diameter, height);
+          ctx.setLineDash([]);
+        }
       }
 
       currentY += height;
