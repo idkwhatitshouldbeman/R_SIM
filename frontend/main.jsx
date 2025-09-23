@@ -341,6 +341,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationStatus, setSimulationStatus] = useState(null);
   const [currentSimulationId, setCurrentSimulationId] = useState(null);
+  const [simulationResults, setSimulationResults] = useState(null);
   const simulationRunningRef = useRef(false);
   const [stlProcessing, setStlProcessing] = useState(false);
   const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
@@ -1770,6 +1771,24 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
             setSimulationRunning(false);
             simulationRunningRef.current = false;
             clearInterval(pollInterval);
+            
+            // If simulation completed successfully, switch to results tab
+            if (status.status === 'completed') {
+              console.log('🎯 Switching to results tab and populating results');
+              setActiveTab('results');
+              // Store simulation results for display
+              setSimulationResults({
+                status: 'completed',
+                progress: 100,
+                message: status.message,
+                elapsed_time: status.elapsed_time,
+                rocket_components: status.rocket_components,
+                rocket_weight: status.rocket_weight,
+                rocket_cg: status.rocket_cg,
+                simulation_id: simulationId,
+                completed_at: new Date().toISOString()
+              });
+            }
           }
         } else {
           console.error('❌ Status check failed:', response.status, response.statusText);
@@ -2383,7 +2402,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           ctx.setLineDash([]);
         }
       } else if (component.type === 'Motor') {
-        // Draw motor as a cylindrical component with motor details
+        // Draw motor as a simple cylindrical component
         const diameter = component.diameter || 18;
         const x = centerX - diameter / 2;
         
@@ -2394,32 +2413,12 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         ctx.fillRect(x, currentY, diameter, height);
         ctx.strokeRect(x, currentY, diameter, height);
         
-        // Motor nozzle (smaller diameter at bottom)
-        const nozzleDiameter = diameter * 0.6;
-        const nozzleX = centerX - nozzleDiameter / 2;
-        const nozzleHeight = height * 0.2;
-        
-        ctx.fillStyle = '#34495E';
-        ctx.fillRect(nozzleX, currentY + height - nozzleHeight, nozzleDiameter, nozzleHeight);
-        ctx.strokeRect(nozzleX, currentY + height - nozzleHeight, nozzleDiameter, nozzleHeight);
-        
-        // Motor label
+        // Simple motor label
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';
         const motorModel = component.motorModel || 'Motor';
         ctx.fillText(motorModel, centerX, currentY + height / 2);
-        
-        // Add some motor details (thrust lines)
-        ctx.strokeStyle = '#E74C3C';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 3; i++) {
-          const lineX = centerX - diameter / 4 + (i * diameter / 4);
-          ctx.beginPath();
-          ctx.moveTo(lineX, currentY + height - nozzleHeight);
-          ctx.lineTo(lineX, currentY + height + 5);
-          ctx.stroke();
-        }
         
         // Highlight if selected
         if (selectedComponent?.id === component.id) {
@@ -3961,7 +3960,11 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           <div key="results" className="results-container">
             <div className="results-header">
               <h1>📊 Simulation Results</h1>
-              <p>Analysis and visualization of your rocket's performance</p>
+              {simulationResults ? (
+                <p>Analysis and visualization of your rocket's performance - Simulation completed successfully!</p>
+              ) : (
+                <p>Run a simulation to see results</p>
+              )}
                       </div>
                       
             <div className="results-grid">
@@ -3970,40 +3973,40 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 <div className="section-header">
                   <h2>🚀 Performance Overview</h2>
                   <div className="section-status">
-                    <span className="status-indicator">Ready</span>
+                    <span className="status-indicator">{simulationResults ? 'Completed' : 'No Data'}</span>
                       </div>
                     </div>
                 <div className="performance-metrics">
                   <div className="metric-card">
                     <div className="metric-icon">📈</div>
                     <div className="metric-content">
-                      <h3>Max Altitude</h3>
-                      <div className="metric-value">-- m</div>
-                      <div className="metric-label">Peak height achieved</div>
+                      <h3>Center of Gravity</h3>
+                      <div className="metric-value">{simulationResults ? `${simulationResults.rocket_cg || 0} mm` : '-- mm'}</div>
+                      <div className="metric-label">Rocket CG position</div>
                   </div>
               </div>
                   <div className="metric-card">
                     <div className="metric-icon">⚡</div>
                     <div className="metric-content">
-                      <h3>Max Velocity</h3>
-                      <div className="metric-value">-- m/s</div>
-                      <div className="metric-label">Peak speed reached</div>
+                      <h3>Total Weight</h3>
+                      <div className="metric-value">{simulationResults ? `${simulationResults.rocket_weight || 0} g` : '-- g'}</div>
+                      <div className="metric-label">Rocket total mass</div>
                 </div>
                       </div>
                   <div className="metric-card">
                     <div className="metric-icon">🎯</div>
                     <div className="metric-content">
-                      <h3>Stability</h3>
-                      <div className="metric-value">--</div>
-                      <div className="metric-label">Flight stability rating</div>
+                      <h3>Components</h3>
+                      <div className="metric-value">{simulationResults ? simulationResults.rocket_components || 0 : '--'}</div>
+                      <div className="metric-label">Total components</div>
                     </div>
                   </div>
                   <div className="metric-card">
                     <div className="metric-icon">⏱️</div>
                     <div className="metric-content">
-                      <h3>Flight Time</h3>
-                      <div className="metric-value">-- s</div>
-                      <div className="metric-label">Total flight duration</div>
+                      <h3>Simulation Time</h3>
+                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.elapsed_time || 0)} s` : '-- s'}</div>
+                      <div className="metric-label">CFD computation time</div>
                     </div>
                   </div>
                 </div>
@@ -4223,11 +4226,15 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
             <div className="results-status-bar">
               <div className="status-info">
                 <span className="status-icon">ℹ️</span>
-                <span>Run a simulation to see results</span>
+                {simulationResults ? (
+                  <span>Simulation completed at {new Date(simulationResults.completed_at).toLocaleTimeString()} - ID: {simulationResults.simulation_id}</span>
+                ) : (
+                  <span>Run a simulation to see results</span>
+                )}
               </div>
               <div className="status-actions">
-                <button className="status-btn">Clear Results</button>
-                <button className="status-btn primary">Run New Simulation</button>
+                <button className="status-btn" onClick={() => setSimulationResults(null)}>Clear Results</button>
+                <button className="status-btn primary" onClick={() => setActiveTab('simulation')}>Run New Simulation</button>
               </div>
             </div>
           </div>
