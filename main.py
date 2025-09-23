@@ -2,8 +2,10 @@ import os
 import json
 import time
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Global simulation storage
 simulations = {}
@@ -14,6 +16,16 @@ def health_check():
     return jsonify({
         "status": "healthy",
         "service": "Google Cloud CFD Function",
+        "timestamp": time.time(),
+        "active_simulations": len([s for s in simulations.values() if s.get("status") == "running"])
+    })
+
+@app.route('/api/health', methods=['GET'])
+def api_health_check():
+    """API health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "service": "Google Cloud CFD Function API",
         "timestamp": time.time(),
         "active_simulations": len([s for s in simulations.values() if s.get("status") == "running"])
     })
