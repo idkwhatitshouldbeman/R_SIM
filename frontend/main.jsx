@@ -341,6 +341,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationStatus, setSimulationStatus] = useState(null);
   const [currentSimulationId, setCurrentSimulationId] = useState(null);
+  const simulationRunningRef = useRef(false);
   const [stlProcessing, setStlProcessing] = useState(false);
   const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
   
@@ -1383,7 +1384,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   };
 
   const startSimulation = async () => {
+    console.log('🚀 Starting simulation - setting simulationRunning to true');
     setSimulationRunning(true);
+    simulationRunningRef.current = true;
     setSimulationStatus({
       status: 'Initializing...',
       progress: 0,
@@ -1461,16 +1464,26 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         message: error.message
       });
       setSimulationRunning(false);
+      simulationRunningRef.current = false;
     }
   };
 
   const stopSimulation = async () => {
     try {
+      console.log('🛑 Stopping simulation:', currentSimulationId);
       await fetch(`${SIMULATION_API_URL}/api/simulation/stop`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          simulation_id: currentSimulationId
+        })
       });
       setSimulationRunning(false);
+      simulationRunningRef.current = false;
       setSimulationStatus(null);
+      setCurrentSimulationId(null);
     } catch (error) {
       console.error('Error stopping simulation:', error);
     }
@@ -1519,9 +1532,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const pollSimulationStatus = (simulationId) => {
     console.log('🔄 Starting status polling for simulation:', simulationId);
+    console.log('📊 Current simulationRunning state:', simulationRunning);
+    console.log('📊 Current simulationRunningRef:', simulationRunningRef.current);
     
     const pollInterval = setInterval(async () => {
-      if (!simulationRunning) {
+      console.log('🔄 Polling check - simulationRunning:', simulationRunning);
+      console.log('🔄 Polling check - simulationRunningRef:', simulationRunningRef.current);
+      if (!simulationRunningRef.current) {
         console.log('🛑 Stopping status polling - simulation not running');
         clearInterval(pollInterval);
         return;
@@ -1549,6 +1566,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
           if (status.status === 'completed' || status.status === 'error' || status.status === 'stopped') {
             console.log('✅ Simulation finished with status:', status.status);
             setSimulationRunning(false);
+            simulationRunningRef.current = false;
             clearInterval(pollInterval);
           }
         } else {
