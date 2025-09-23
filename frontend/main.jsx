@@ -593,6 +593,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   };
 
   const addComponent = (type) => {
+    console.log('🔧 addComponent called with type:', type);
+    
     // Find the last body tube to attach fins to
     let attachedToComponent = null;
     if (type === 'Fins') {
@@ -642,7 +644,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       motorWeight: type === 'Motor' ? 16.8 : null,
       attachedToComponent: type === 'Fins' ? attachedToComponent : null
     };
+    console.log('🔧 Adding new component:', newComponent);
     setRocketComponents([...rocketComponents, newComponent]);
+    console.log('🔧 Component added successfully. Total components:', rocketComponents.length + 1);
   };
 
   const addMotorFromSearch = (motorData) => {
@@ -3501,11 +3505,19 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     <div className="category">
                       <h4>Motors</h4>
                       <div className="component-grid">
-                        <button className="component-btn" onClick={() => addComponent('Motor')}>
+                        <button className="component-btn" onClick={() => {
+                          console.log('🔧 Motor button clicked - adding motor component');
+                          addComponent('Motor');
+                        }}>
                           <div className="component-icon motor"></div>
                           Motor
                         </button>
-                        <button className="component-btn search-btn" onClick={() => setShowMotorSearch(true)}>
+                        <button className="component-btn search-btn" onClick={() => {
+                          console.log('🔍 Search Motors button clicked - opening search modal');
+                          console.log('🔍 Current showMotorSearch state:', showMotorSearch);
+                          setShowMotorSearch(true);
+                          console.log('🔍 Set showMotorSearch to true');
+                        }}>
                           <div className="component-icon search-icon"></div>
                           Search Motors
                         </button>
@@ -4091,6 +4103,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       </main>
 
       {/* Motor Search Modal */}
+      {console.log('🔍 Modal render check - showMotorSearch:', showMotorSearch)}
       {showMotorSearch && (
         <div className="modal-overlay" onClick={() => setShowMotorSearch(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
