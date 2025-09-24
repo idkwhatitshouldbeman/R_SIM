@@ -191,6 +191,33 @@ function App() {
       return total + (component.length || 0);
     }, 0);
   };
+
+  const calculateRocketCG = () => {
+    if (rocketComponents.length === 0) return 0;
+    
+    let totalMoment = 0;
+    let totalWeight = 0;
+    let currentPosition = 0;
+    
+    // Calculate CG from bottom of rocket
+    rocketComponents.forEach(component => {
+      const componentLength = component.length || 0;
+      const componentWeight = component.weight || 10; // Default weight in grams
+      const componentCG = currentPosition + (componentLength / 2);
+      
+      totalMoment += componentWeight * componentCG;
+      totalWeight += componentWeight;
+      currentPosition += componentLength;
+    });
+    
+    return totalWeight > 0 ? totalMoment / totalWeight : 0;
+  };
+
+  const calculateRocketWeight = () => {
+    return rocketComponents.reduce((total, component) => {
+      return total + (component.weight || 10); // Default 10g per component
+    }, 0);
+  };
   
   const [activeTab, setActiveTab] = useState('builder');
   const [selectedComponent, setSelectedComponent] = useState(null);
@@ -1587,6 +1614,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   };
 
   const startSimulation = async () => {
+    // Check if rocket has a motor
+    const hasMotor = rocketComponents.some(comp => comp.type === 'Motor');
+    if (!hasMotor) {
+      showNotification('Please add a motor to your rocket before running simulation', 'error');
+      return;
+    }
+
     console.log('🚀 Starting simulation - setting simulationRunning to true');
     setSimulationRunning(true);
     simulationRunningRef.current = true;
@@ -1599,10 +1633,16 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     try {
       const fullUrl = `${SIMULATION_API_URL}/api/simulation/start`;
       console.log('🚀 Starting simulation with URL:', fullUrl);
+      // Calculate actual values
+      const actualWeight = calculateRocketWeight();
+      const actualCG = calculateRocketCG();
+      const totalHeight = calculateRocketLength();
+      
       console.log('📊 Simulation data:', {
         rocketComponents: rocketComponents.length,
-        rocketWeight,
-        rocketCG,
+        rocketWeight: actualWeight,
+        rocketCG: actualCG,
+        totalHeight: totalHeight,
         simulationConfig: Object.keys(simulationConfig)
       });
       
@@ -1613,8 +1653,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         },
         body: JSON.stringify({
           rocketComponents,
-          rocketWeight,
-          rocketCG,
+          rocketWeight: actualWeight,
+          rocketCG: actualCG,
+          totalHeight: totalHeight,
           simulationConfig
         })
       });
@@ -1785,6 +1826,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 rocket_components: status.rocket_components,
                 rocket_weight: status.rocket_weight,
                 rocket_cg: status.rocket_cg,
+                totalHeight: status.totalHeight || calculateRocketLength(),
                 simulation_id: simulationId,
                 completed_at: new Date().toISOString()
               });
@@ -3978,35 +4020,35 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                 <div className="performance-metrics">
                   <div className="metric-card">
-                    <div className="metric-icon">📈</div>
+                    <div className="metric-icon">📏</div>
                     <div className="metric-content">
-                      <h3>Center of Gravity</h3>
-                      <div className="metric-value">{simulationResults ? `${simulationResults.rocket_cg || 0} mm` : '-- mm'}</div>
-                      <div className="metric-label">Rocket CG position</div>
+                      <h3>Total Height</h3>
+                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.totalHeight || 0)} mm` : '-- mm'}</div>
+                      <div className="metric-label">Rocket total length</div>
                   </div>
               </div>
                   <div className="metric-card">
-                    <div className="metric-icon">⚡</div>
+                    <div className="metric-icon">⚖️</div>
                     <div className="metric-content">
                       <h3>Total Weight</h3>
-                      <div className="metric-value">{simulationResults ? `${simulationResults.rocket_weight || 0} g` : '-- g'}</div>
+                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.rocket_weight || 0)} g` : '-- g'}</div>
                       <div className="metric-label">Rocket total mass</div>
                 </div>
                       </div>
                   <div className="metric-card">
                     <div className="metric-icon">🎯</div>
                     <div className="metric-content">
-                      <h3>Components</h3>
-                      <div className="metric-value">{simulationResults ? simulationResults.rocket_components || 0 : '--'}</div>
-                      <div className="metric-label">Total components</div>
+                      <h3>Center of Gravity</h3>
+                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.rocket_cg || 0)} mm` : '-- mm'}</div>
+                      <div className="metric-label">CG from bottom</div>
                     </div>
                   </div>
                   <div className="metric-card">
                     <div className="metric-icon">⏱️</div>
                     <div className="metric-content">
-                      <h3>Simulation Time</h3>
-                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.elapsed_time || 0)} s` : '-- s'}</div>
-                      <div className="metric-label">CFD computation time</div>
+                      <h3>Flight Time</h3>
+                      <div className="metric-value">{simulationResults ? `${Math.round((simulationResults.totalHeight || 0) / 50)} s` : '-- s'}</div>
+                      <div className="metric-label">Estimated flight duration</div>
                     </div>
                   </div>
                 </div>
