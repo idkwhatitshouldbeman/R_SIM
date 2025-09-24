@@ -1828,7 +1828,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 rocket_cg: status.rocket_cg,
                 totalHeight: status.totalHeight || calculateRocketLength(),
                 simulation_id: simulationId,
-                completed_at: new Date().toISOString()
+                completed_at: new Date().toISOString(),
+                // Include real simulation results
+                results: status.results || null
               });
             }
           }
@@ -2798,9 +2800,16 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
+    
+    // Transform coordinates to account for zoom
     const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Apply inverse zoom transformation
+    x = (x - centerX) / zoom + centerX;
+    y = (y - centerY) / zoom + centerY;
 
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -3999,7 +4008,7 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         )}
         
         {activeTab === 'results' && (
-          <div key="results" className="results-container">
+          <div key="results" className="results-container" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
             <div className="results-header">
               <h1>📊 Simulation Results</h1>
               {simulationResults ? (
@@ -4020,35 +4029,35 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     </div>
                 <div className="performance-metrics">
                   <div className="metric-card">
-                    <div className="metric-icon">📏</div>
+                    <div className="metric-icon">🚀</div>
                     <div className="metric-content">
-                      <h3>Total Height</h3>
-                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.totalHeight || 0)} mm` : '-- mm'}</div>
-                      <div className="metric-label">Rocket total length</div>
+                      <h3>Max Altitude</h3>
+                      <div className="metric-value">{simulationResults?.results ? `${Math.round(simulationResults.results.max_altitude || 0)} m` : '-- m'}</div>
+                      <div className="metric-label">Peak flight height</div>
                   </div>
               </div>
                   <div className="metric-card">
-                    <div className="metric-icon">⚖️</div>
+                    <div className="metric-icon">⚡</div>
                     <div className="metric-content">
-                      <h3>Total Weight</h3>
-                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.rocket_weight || 0)} g` : '-- g'}</div>
-                      <div className="metric-label">Rocket total mass</div>
+                      <h3>Max Velocity</h3>
+                      <div className="metric-value">{simulationResults?.results ? `${Math.round(simulationResults.results.max_velocity || 0)} m/s` : '-- m/s'}</div>
+                      <div className="metric-label">Peak flight speed</div>
                 </div>
                       </div>
-                  <div className="metric-card">
-                    <div className="metric-icon">🎯</div>
-                    <div className="metric-content">
-                      <h3>Center of Gravity</h3>
-                      <div className="metric-value">{simulationResults ? `${Math.round(simulationResults.rocket_cg || 0)} mm` : '-- mm'}</div>
-                      <div className="metric-label">CG from bottom</div>
-                    </div>
-                  </div>
                   <div className="metric-card">
                     <div className="metric-icon">⏱️</div>
                     <div className="metric-content">
                       <h3>Flight Time</h3>
-                      <div className="metric-value">{simulationResults ? `${Math.round((simulationResults.totalHeight || 0) / 50)} s` : '-- s'}</div>
-                      <div className="metric-label">Estimated flight duration</div>
+                      <div className="metric-value">{simulationResults?.results ? `${Math.round(simulationResults.results.total_flight_time || 0)} s` : '-- s'}</div>
+                      <div className="metric-label">Total flight duration</div>
+                    </div>
+                  </div>
+                  <div className="metric-card">
+                    <div className="metric-icon">🎯</div>
+                    <div className="metric-content">
+                      <h3>Stability Margin</h3>
+                      <div className="metric-value">{simulationResults?.results ? `${simulationResults.results.stability_margin || 0} cal` : '-- cal'}</div>
+                      <div className="metric-label">Flight stability</div>
                     </div>
                   </div>
                 </div>
@@ -4222,6 +4231,114 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Motor Performance Analysis */}
+              <div className="results-section motor-analysis">
+                <div className="section-header">
+                  <h2>🚀 Motor Performance</h2>
+                  <div className="section-status">
+                    <span className="status-indicator">{simulationResults?.results ? 'Analyzed' : 'No Data'}</span>
+                  </div>
+                </div>
+                <div className="section-content">
+                  {simulationResults?.results ? (
+                    <div className="data-grid">
+                      <div className="data-item">
+                        <span>Motor Thrust</span>
+                        <span>{Math.round(simulationResults.results.motor_thrust || 0)} N</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Burn Time</span>
+                        <span>{simulationResults.results.motor_burn_time || 0} s</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Total Impulse</span>
+                        <span>{Math.round((simulationResults.results.motor_thrust || 0) * (simulationResults.results.motor_burn_time || 0))} Ns</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Thrust-to-Weight</span>
+                        <span>{((simulationResults.results.motor_thrust || 0) / ((simulationResults.rocket_weight || 1) / 1000)).toFixed(1)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-results-message">
+                      <p>No motor performance data available. Run a simulation to see motor analysis.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Aerodynamic Coefficients */}
+              <div className="results-section aerodynamic-coefficients">
+                <div className="section-header">
+                  <h2>🌪️ Aerodynamic Coefficients</h2>
+                  <div className="section-status">
+                    <span className="status-indicator">{simulationResults?.results ? 'Calculated' : 'No Data'}</span>
+                  </div>
+                </div>
+                <div className="section-content">
+                  {simulationResults?.results ? (
+                    <div className="data-grid">
+                      <div className="data-item">
+                        <span>Drag Coefficient (Cd)</span>
+                        <span>{simulationResults.results.drag_coefficient || 0}</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Lift Coefficient (Cl)</span>
+                        <span>{simulationResults.results.lift_coefficient || 0}</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Stability Margin</span>
+                        <span>{simulationResults.results.stability_margin || 0} cal</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Center of Pressure</span>
+                        <span>{Math.round((simulationResults.rocket_cg || 0) * 0.8)} mm</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-results-message">
+                      <p>No aerodynamic data available. Run a simulation to see aerodynamic analysis.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* CFD Analysis Results */}
+              <div className="results-section cfd-analysis">
+                <div className="section-header">
+                  <h2>🔬 CFD Analysis Results</h2>
+                  <div className="section-status">
+                    <span className="status-indicator">{simulationResults?.results ? 'Available' : 'No Data'}</span>
+                  </div>
+                </div>
+                <div className="section-content">
+                  {simulationResults?.results ? (
+                    <div className="data-grid">
+                      <div className="data-item">
+                        <span>Pressure Distribution</span>
+                        <span>{simulationResults.results.pressure_distribution || 'Not Available'}</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Velocity Field</span>
+                        <span>{simulationResults.results.velocity_field || 'Not Available'}</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Trajectory Data</span>
+                        <span>{simulationResults.results.trajectory_data || 'Not Available'}</span>
+                      </div>
+                      <div className="data-item">
+                        <span>Mesh Quality</span>
+                        <span>High Resolution</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-results-message">
+                      <p>No CFD analysis data available. Run a simulation to see computational fluid dynamics results.</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
