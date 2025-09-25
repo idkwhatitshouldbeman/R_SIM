@@ -370,6 +370,10 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
   const [currentSimulationId, setCurrentSimulationId] = useState(null);
   const [simulationResults, setSimulationResults] = useState(null);
   const simulationRunningRef = useRef(false);
+  
+  // Split point and separation features
+  const [splitPoint, setSplitPoint] = useState(null);
+  const [separationEnabled, setSeparationEnabled] = useState(false);
   const [stlProcessing, setStlProcessing] = useState(false);
   const [finMaterial, setFinMaterial] = useState('carbon_fiber'); // Default fin material
   
@@ -750,16 +754,17 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       railButtonHeight: type === 'Rail Button' ? 8 : null,
       railButtonWidth: type === 'Rail Button' ? 4 : null,
       railButtonOffset: type === 'Rail Button' ? 2 : null,
-      // Motor properties
-      motorType: type === 'Motor' ? 'Estes' : null,
-      motorModel: type === 'Motor' ? 'C6-5' : null,
-      motorImpulse: type === 'Motor' ? 'C' : null,
-      motorThrust: type === 'Motor' ? 6 : null,
-      motorBurnTime: type === 'Motor' ? 1.6 : null,
-      motorTotalImpulse: type === 'Motor' ? 10 : null,
-      motorDelay: type === 'Motor' ? 5 : null,
-      motorWeight: type === 'Motor' ? 16.8 : null,
-      attachedToComponent: type === 'Fins' ? attachedToComponent : null
+         // Motor properties
+         motorType: type === 'Motor' ? 'Estes' : null,
+         motorModel: type === 'Motor' ? 'C6-5' : null,
+         motorImpulse: type === 'Motor' ? 'C' : null,
+         motorThrust: type === 'Motor' ? 6 : null,
+         motorBurnTime: type === 'Motor' ? 1.6 : null,
+         motorTotalImpulse: type === 'Motor' ? 10 : null,
+         motorDelay: type === 'Motor' ? 5 : null,
+         motorWeight: type === 'Motor' ? 16.8 : null,
+         // Motor attachment (similar to fins)
+         attachedToComponent: type === 'Motor' ? null : (type === 'Fins' ? attachedToComponent : null)
     };
     console.log('🔧 Adding new component:', newComponent);
     setRocketComponents([...rocketComponents, newComponent]);
@@ -768,6 +773,17 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
 
   const addMotorFromSearch = (motorData) => {
     const existingCount = rocketComponents.filter(comp => comp.type === 'Motor').length;
+    
+    // Find body tubes for motor attachment
+    const bodyTubes = rocketComponents.filter(comp => 
+      ['Body Tube', 'Transition'].includes(comp.type)
+    );
+    
+    let attachedToComponent = null;
+    if (bodyTubes.length > 0) {
+      // Auto-attach to the last body tube (bottom of rocket)
+      attachedToComponent = bodyTubes[bodyTubes.length - 1].id;
+    }
     
     const newMotor = {
       id: Date.now(),
@@ -793,13 +809,21 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       motorPropellant: motorData.propellant,
       motorCertification: motorData.certification,
       motorPrice: motorData.price,
-      motorId: motorData.id
+      motorId: motorData.id,
+      // Motor attachment
+      attachedToComponent: attachedToComponent
     };
     
     setRocketComponents([...rocketComponents, newMotor]);
     setShowMotorSearch(false);
     setSelectedMotor(null);
-    showNotification(`Motor added: ${motorData.manufacturer} ${motorData.model}`, 'success');
+    
+    if (attachedToComponent) {
+      const attachedComponent = rocketComponents.find(comp => comp.id === attachedToComponent);
+      showNotification(`Motor added and attached to ${attachedComponent?.name}`, 'success');
+    } else {
+      showNotification(`Motor added: ${motorData.manufacturer} ${motorData.model}`, 'success');
+    }
   };
 
   const importSTL = (event) => {
@@ -2799,9 +2823,13 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    console.log('🖱️ Canvas click detected - zoom level:', zoom);
+    
     const rect = canvas.getBoundingClientRect();
     let x = event.clientX - rect.left;
     let y = event.clientY - rect.top;
+    
+    console.log('🖱️ Raw click coordinates:', { x, y });
     
     // Transform coordinates to account for zoom
     const centerX = canvas.width / 2;
@@ -2810,6 +2838,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
     // Apply inverse zoom transformation
     x = (x - centerX) / zoom + centerX;
     y = (y - centerY) / zoom + centerY;
+    
+    console.log('🖱️ Transformed coordinates:', { x, y, zoom });
 
     const bodyComponents = rocketComponents.filter(comp => 
       ['Nose Cone', 'Body Tube', 'Transition'].includes(comp.type)
@@ -3024,6 +3054,14 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     );
                     if (attachedFins.length > 0) {
                       console.log(`🔗 ${component.name} has ${attachedFins.length} attached fins`);
+                    }
+                    
+                    // Check if this component has motors attached to it
+                    const attachedMotors = rocketComponents.filter(comp => 
+                      comp.type === 'Motor' && comp.attachedToComponent === component.id
+                    );
+                    if (attachedMotors.length > 0) {
+                      console.log(`🚀 ${component.name} has ${attachedMotors.length} attached motors`);
                     }
 
                     
@@ -3869,6 +3907,41 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                     <option value="enabled">Enabled</option>
                     <option value="test">Test Mode</option>
                         </select>
+                      </div>
+                      
+                      {/* Split Point and Separation Controls */}
+                      <div className="variable-group">
+                        <label>Rocket Separation:</label>
+                        <div className="separation-controls">
+                          <div className="separation-toggle">
+                            <input
+                              type="checkbox"
+                              id="separationEnabled"
+                              checked={separationEnabled}
+                              onChange={(e) => setSeparationEnabled(e.target.checked)}
+                            />
+                            <label htmlFor="separationEnabled">Enable Stage Separation</label>
+                          </div>
+                          
+                          {separationEnabled && (
+                            <div className="split-point-controls">
+                              <label>Split Point:</label>
+                              <select 
+                                value={splitPoint || ''} 
+                                onChange={(e) => setSplitPoint(e.target.value || null)}
+                              >
+                                <option value="">Select Split Point</option>
+                                {rocketComponents
+                                  .filter(comp => ['Body Tube', 'Transition'].includes(comp.type))
+                                  .map(comp => (
+                                    <option key={comp.id} value={comp.id}>
+                                      {comp.name} ({comp.type})
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       </div>
                     </div>

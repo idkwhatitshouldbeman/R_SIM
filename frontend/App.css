@@ -1828,6 +1828,66 @@ body {
   margin: 8px 0;
 }
 
+/* Separation Controls */
+.separation-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.separation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.separation-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.separation-toggle label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.split-point-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.split-point-controls label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.split-point-controls select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.split-point-controls select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 
 
 /* Preset Configurations */
