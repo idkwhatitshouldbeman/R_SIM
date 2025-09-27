@@ -3088,9 +3088,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <div className="tree-item">
                     <span className="tree-label">Rocket</span>
                   </div>
-                  {/* Render body components first, then show their attached fins */}
+                  {/* Render body components first, then show their attached fins and motors */}
                   {rocketComponents.filter(comp => 
-                    ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
+                    ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button'].includes(comp.type)
                   ).map((component, index) => {
                     // Check if this component has fins attached to it
                     const attachedFins = rocketComponents.filter(comp => 
@@ -3231,6 +3231,40 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                           </div>
                         ))}
                         
+                        {/* Show attached motors as sub-items */}
+                        {attachedMotors.map((motor, motorIndex) => (
+                          <div 
+                            key={motor.id}
+                            className={`tree-item sub-item ${selectedComponent?.id === motor.id ? 'selected' : ''} ${draggedComponent?.id === motor.id ? 'dragging' : ''}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleComponentClick(motor, false);
+                            }}
+                            onDoubleClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleComponentClick(motor, true);
+                            }}
+                            onMouseEnter={() => setHoveredComponent(motor.id)}
+                            onMouseLeave={() => setHoveredComponent(null)}
+                          >
+                            <span className="tree-arrow">🚀</span>
+                            <span className="tree-label">{motor.name}</span>
+                            {hoveredComponent === motor.id && (
+                              <button 
+                                className="delete-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteComponent(motor.id);
+                                }}
+                                title="Delete motor"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
 
                       </div>
                     );
@@ -3289,6 +3323,43 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                             deleteComponent(component.id);
                           }}
                           title="Delete component"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Show any unattached motors at the bottom */}
+                  {rocketComponents.filter(comp => 
+                    comp.type === 'Motor' && !comp.attachedToComponent
+                  ).map((component, index) => (
+                    <div 
+                      key={component.id}
+                      className={`tree-item ${selectedComponent?.id === component.id ? 'selected' : ''} ${draggedComponent?.id === component.id ? 'dragging' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleComponentClick(component, false);
+                      }}
+                      onDoubleClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleComponentClick(component, true);
+                      }}
+                      onMouseEnter={() => setHoveredComponent(component.id)}
+                      onMouseLeave={() => setHoveredComponent(null)}
+                    >
+                      <span className="tree-arrow">🚀</span>
+                      <span className="tree-label">{component.name}</span>
+                      {hoveredComponent === component.id && (
+                        <button 
+                          className="delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteComponent(component.id);
+                          }}
+                          title="Delete motor"
                         >
                           ×
                         </button>
