@@ -244,7 +244,7 @@ def api_simulation_status():
         sim_data["last_update"] = time.time()
         
         response_data = {
-            "simulation_id": simulation_id,
+                "simulation_id": simulation_id,
             "status": sim_data["status"],
             "progress": sim_data["progress"],
             "message": sim_data["message"],
@@ -260,7 +260,7 @@ def api_simulation_status():
         
         print(f"📤 Sending status response: {response_data}")
         return jsonify(response_data)
-        
+
     except Exception as e:
         print(f"❌ Error in simulation status: {e}")
         import traceback

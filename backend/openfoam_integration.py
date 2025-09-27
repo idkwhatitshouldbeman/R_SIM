@@ -353,13 +353,209 @@ mergeTolerance 1e-6;
     
     def _create_rocket_geometry_files(self, rocket_components):
         """Create STL geometry files from rocket components"""
-        # This is a simplified version - in practice, you'd need to:
-        # 1. Convert rocket components to 3D geometry
-        # 2. Generate STL files
-        # 3. Place them in the constant/triSurface directory
+        print("🔄 Creating rocket STL geometry files...")
         
-        # For now, create a simple rocket geometry
-        rocket_stl_content = """solid rocket
+        # Create triSurface directory
+        os.makedirs(os.path.join(self.openfoam_case_dir, "constant", "triSurface"), exist_ok=True)
+        
+        # Generate comprehensive rocket STL
+        rocket_stl_content = self._generate_rocket_stl(rocket_components)
+        
+        # Write main rocket STL
+        with open(os.path.join(self.openfoam_case_dir, "constant", "triSurface", "rocket.stl"), "w") as f:
+            f.write(rocket_stl_content)
+        
+        # Generate individual component STLs
+        self._generate_component_stls(rocket_components)
+        
+        print("✅ Rocket STL geometry files created successfully")
+    
+    def _generate_rocket_stl(self, rocket_components):
+        """Generate comprehensive rocket STL from components"""
+        stl_content = []
+        stl_content.append("solid rocket")
+        
+        # Filter body components
+        body_components = [comp for comp in rocket_components if comp.get('type') in ['Nose Cone', 'Body Tube', 'Transition', 'Motor']]
+        
+        if not body_components:
+            # Fallback simple geometry
+            return self._create_simple_rocket_stl()
+        
+        # Generate geometry for each component
+        current_z = 0
+        for component in body_components:
+            component_stl = self._generate_component_stl(component, current_z)
+            stl_content.append(component_stl)
+            current_z += component.get('length', 60)
+        
+        stl_content.append("endsolid rocket")
+        return "\n".join(stl_content)
+    
+    def _generate_component_stl(self, component, z_offset):
+        """Generate STL for a single component"""
+        component_type = component.get('type', 'Body Tube')
+        length = component.get('length', 60)
+        diameter = component.get('diameter', 20)
+        
+        if component_type == 'Nose Cone':
+            return self._generate_nose_cone_stl(diameter, length, z_offset)
+        elif component_type == 'Body Tube':
+            return self._generate_body_tube_stl(diameter, length, z_offset)
+        elif component_type == 'Transition':
+            top_diameter = component.get('topDiameter', diameter)
+            bottom_diameter = component.get('bottomDiameter', diameter)
+            return self._generate_transition_stl(top_diameter, bottom_diameter, length, z_offset)
+        elif component_type == 'Motor':
+            return self._generate_motor_stl(diameter, length, z_offset)
+        else:
+            return self._generate_body_tube_stl(diameter, length, z_offset)
+    
+    def _generate_nose_cone_stl(self, diameter, length, z_offset):
+        """Generate nose cone STL"""
+        radius = diameter / 2
+        stl = []
+        
+        # Create conical nose cone
+        segments = 16
+        for i in range(segments):
+            angle1 = 2 * 3.14159 * i / segments
+            angle2 = 2 * 3.14159 * (i + 1) / segments
+            
+            x1 = radius * np.cos(angle1)
+            y1 = radius * np.sin(angle1)
+            x2 = radius * np.cos(angle2)
+            y2 = radius * np.sin(angle2)
+            
+            # Tip vertex
+            tip_x, tip_y, tip_z = 0, 0, z_offset + length
+            
+            # Base vertices
+            base1_x, base1_y, base1_z = x1, y1, z_offset
+            base2_x, base2_y, base2_z = x2, y2, z_offset
+            
+            # Add triangular faces
+            stl.append(f"  facet normal 0.0 0.0 1.0")
+            stl.append(f"    outer loop")
+            stl.append(f"      vertex {tip_x:.6f} {tip_y:.6f} {tip_z:.6f}")
+            stl.append(f"      vertex {base1_x:.6f} {base1_y:.6f} {base1_z:.6f}")
+            stl.append(f"      vertex {base2_x:.6f} {base2_y:.6f} {base2_z:.6f}")
+            stl.append(f"    endloop")
+            stl.append(f"  endfacet")
+        
+        return "\n".join(stl)
+    
+    def _generate_body_tube_stl(self, diameter, length, z_offset):
+        """Generate body tube STL"""
+        radius = diameter / 2
+        stl = []
+        
+        # Create cylindrical body tube
+        segments = 16
+        for i in range(segments):
+            angle1 = 2 * 3.14159 * i / segments
+            angle2 = 2 * 3.14159 * (i + 1) / segments
+            
+            x1 = radius * np.cos(angle1)
+            y1 = radius * np.sin(angle1)
+            x2 = radius * np.cos(angle2)
+            y2 = radius * np.sin(angle2)
+            
+            # Bottom vertices
+            bot1_x, bot1_y, bot1_z = x1, y1, z_offset
+            bot2_x, bot2_y, bot2_z = x2, y2, z_offset
+            
+            # Top vertices
+            top1_x, top1_y, top1_z = x1, y1, z_offset + length
+            top2_x, top2_y, top2_z = x2, y2, z_offset + length
+            
+            # Add rectangular faces
+            stl.append(f"  facet normal {np.cos(angle1):.6f} {np.sin(angle1):.6f} 0.0")
+            stl.append(f"    outer loop")
+            stl.append(f"      vertex {bot1_x:.6f} {bot1_y:.6f} {bot1_z:.6f}")
+            stl.append(f"      vertex {top1_x:.6f} {top1_y:.6f} {top1_z:.6f}")
+            stl.append(f"      vertex {top2_x:.6f} {top2_y:.6f} {top2_z:.6f}")
+            stl.append(f"    endloop")
+            stl.append(f"  endfacet")
+            
+            stl.append(f"  facet normal {np.cos(angle1):.6f} {np.sin(angle1):.6f} 0.0")
+            stl.append(f"    outer loop")
+            stl.append(f"      vertex {bot1_x:.6f} {bot1_y:.6f} {bot1_z:.6f}")
+            stl.append(f"      vertex {top2_x:.6f} {top2_y:.6f} {top2_z:.6f}")
+            stl.append(f"      vertex {bot2_x:.6f} {bot2_y:.6f} {bot2_z:.6f}")
+            stl.append(f"    endloop")
+            stl.append(f"  endfacet")
+        
+        return "\n".join(stl)
+    
+    def _generate_transition_stl(self, top_diameter, bottom_diameter, length, z_offset):
+        """Generate transition STL"""
+        top_radius = top_diameter / 2
+        bottom_radius = bottom_diameter / 2
+        stl = []
+        
+        # Create conical transition
+        segments = 16
+        for i in range(segments):
+            angle1 = 2 * 3.14159 * i / segments
+            angle2 = 2 * 3.14159 * (i + 1) / segments
+            
+            # Top vertices
+            top1_x = top_radius * np.cos(angle1)
+            top1_y = top_radius * np.sin(angle1)
+            top1_z = z_offset + length
+            
+            top2_x = top_radius * np.cos(angle2)
+            top2_y = top_radius * np.sin(angle2)
+            top2_z = z_offset + length
+            
+            # Bottom vertices
+            bot1_x = bottom_radius * np.cos(angle1)
+            bot1_y = bottom_radius * np.sin(angle1)
+            bot1_z = z_offset
+            
+            bot2_x = bottom_radius * np.cos(angle2)
+            bot2_y = bottom_radius * np.sin(angle2)
+            bot2_z = z_offset
+            
+            # Add triangular faces
+            stl.append(f"  facet normal {np.cos(angle1):.6f} {np.sin(angle1):.6f} 0.0")
+            stl.append(f"    outer loop")
+            stl.append(f"      vertex {bot1_x:.6f} {bot1_y:.6f} {bot1_z:.6f}")
+            stl.append(f"      vertex {top1_x:.6f} {top1_y:.6f} {top1_z:.6f}")
+            stl.append(f"      vertex {top2_x:.6f} {top2_y:.6f} {top2_z:.6f}")
+            stl.append(f"    endloop")
+            stl.append(f"  endfacet")
+            
+            stl.append(f"  facet normal {np.cos(angle1):.6f} {np.sin(angle1):.6f} 0.0")
+            stl.append(f"    outer loop")
+            stl.append(f"      vertex {bot1_x:.6f} {bot1_y:.6f} {bot1_z:.6f}")
+            stl.append(f"      vertex {top2_x:.6f} {top2_y:.6f} {top2_z:.6f}")
+            stl.append(f"      vertex {bot2_x:.6f} {bot2_y:.6f} {bot2_z:.6f}")
+            stl.append(f"    endloop")
+            stl.append(f"  endfacet")
+        
+        return "\n".join(stl)
+    
+    def _generate_motor_stl(self, diameter, length, z_offset):
+        """Generate motor STL (similar to body tube but darker material)"""
+        return self._generate_body_tube_stl(diameter, length, z_offset)
+    
+    def _generate_component_stls(self, rocket_components):
+        """Generate individual component STL files"""
+        for i, component in enumerate(rocket_components):
+            if component.get('type') in ['Nose Cone', 'Body Tube', 'Transition', 'Motor']:
+                component_stl = self._generate_component_stl(component, 0)
+                filename = f"component_{i}_{component.get('type', 'unknown').lower().replace(' ', '_')}.stl"
+                
+                with open(os.path.join(self.openfoam_case_dir, "constant", "triSurface", filename), "w") as f:
+                    f.write(f"solid {component.get('name', 'component')}\n")
+                    f.write(component_stl)
+                    f.write(f"\nendsolid {component.get('name', 'component')}")
+    
+    def _create_simple_rocket_stl(self):
+        """Create simple fallback rocket STL"""
+        return """solid rocket
   facet normal 0.0 0.0 1.0
     outer loop
       vertex 0.0 0.0 0.0
@@ -369,12 +565,6 @@ mergeTolerance 1e-6;
   endfacet
 endsolid rocket
 """
-        
-        # Create triSurface directory
-        os.makedirs(os.path.join(self.openfoam_case_dir, "constant", "triSurface"), exist_ok=True)
-        
-        with open(os.path.join(self.openfoam_case_dir, "constant", "triSurface", "rocket.stl"), "w") as f:
-            f.write(rocket_stl_content)
     
     def _setup_advanced_case_files(self, simulation_config):
         """Setup OpenFOAM case files with advanced physics models"""

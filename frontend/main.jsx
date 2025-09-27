@@ -2609,6 +2609,50 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
       });
     }
     
+    // Draw split lines if separation is enabled
+    if (separationEnabled && splitPoint) {
+      const splitComponent = rocketComponents.find(comp => comp.id === splitPoint);
+      if (splitComponent) {
+        // Find the Y position of the split point
+        let splitY = startY;
+        const bodyComponents = rocketComponents.filter(comp => 
+          ['Nose Cone', 'Body Tube', 'Transition', 'Rail Button', 'Motor'].includes(comp.type)
+        );
+        
+        for (const component of bodyComponents) {
+          if (component.id === splitPoint) {
+            // Draw split line at the bottom of this component
+            splitY += component.length || 60;
+            break;
+          }
+          splitY += component.length || 60;
+        }
+        
+        // Draw separation line
+        ctx.strokeStyle = '#FF0000';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 5]);
+        
+        // Draw horizontal line across the rocket
+        const maxDiameter = Math.max(...bodyComponents.map(comp => comp.diameter || 20));
+        const lineStartX = centerX - maxDiameter / 2 - 10;
+        const lineEndX = centerX + maxDiameter / 2 + 10;
+        
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, splitY);
+        ctx.lineTo(lineEndX, splitY);
+        ctx.stroke();
+        
+        // Add "SEPARATION" label
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('SEPARATION', centerX, splitY - 5);
+        
+        ctx.setLineDash([]);
+      }
+    }
+    
     // Restore canvas context after zoom transformation
         ctx.restore();
   };
@@ -3663,6 +3707,64 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                                 onChange={(e) => handleNumberInput(selectedComponent.id, 'railButtonOffset', e.target.value)}
                                 placeholder="Enter offset"
                               />
+                            </div>
+                          </>
+                        ) : selectedComponent.type === 'Motor' ? (
+                          <>
+                            <div className="config-field">
+                              <label>Motor Model:</label>
+                              <input 
+                                type="text"
+                                value={selectedComponent.motorModel || ''}
+                                onChange={(e) => updateComponent(selectedComponent.id, 'motorModel', e.target.value)}
+                                placeholder="Enter motor model"
+                              />
+                            </div>
+                            <div className="config-field">
+                              <label>Motor Type:</label>
+                              <input 
+                                type="text"
+                                value={selectedComponent.motorType || ''}
+                                onChange={(e) => updateComponent(selectedComponent.id, 'motorType', e.target.value)}
+                                placeholder="Enter motor type"
+                              />
+                            </div>
+                            <div className="config-field">
+                              <label>Thrust (N):</label>
+                              <input 
+                                type="number"
+                                value={selectedComponent.motorThrust || ''}
+                                onChange={(e) => updateComponent(selectedComponent.id, 'motorThrust', parseFloat(e.target.value) || 0)}
+                                placeholder="Enter thrust"
+                              />
+                            </div>
+                            <div className="config-field">
+                              <label>Burn Time (s):</label>
+                              <input 
+                                type="number"
+                                value={selectedComponent.motorBurnTime || ''}
+                                onChange={(e) => updateComponent(selectedComponent.id, 'motorBurnTime', parseFloat(e.target.value) || 0)}
+                                placeholder="Enter burn time"
+                              />
+                            </div>
+                            <div className="config-field">
+                              <label>Attach to Component:</label>
+                              <select 
+                                value={selectedComponent.attachedToComponent || ''}
+                                onChange={(e) => {
+                                  const newValue = e.target.value || null;
+                                  updateComponent(selectedComponent.id, 'attachedToComponent', newValue);
+                                }}
+                              >
+                                <option value="">Auto (Last Body Tube)</option>
+                                {rocketComponents.filter(comp => 
+                                  ['Body Tube', 'Transition'].includes(comp.type)
+                                ).map(comp => (
+                                  <option key={comp.id} value={comp.id}>
+                                    {comp.name}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </>
                         ) : (
