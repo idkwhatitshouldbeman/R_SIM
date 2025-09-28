@@ -1888,6 +1888,92 @@ body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* Split Point Section */
+.split-point-section {
+  border-top: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.5);
+  flex: 0 0 auto;
+}
+
+.split-point-section .panel-header {
+  padding: 15px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f8fafc;
+}
+
+.split-point-section .panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.split-point-controls {
+  padding: 15px;
+}
+
+.split-point-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.split-point-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.split-point-toggle label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.split-point-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.split-point-selector label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.split-point-selector select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.split-point-selector select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.split-point-info {
+  margin-top: 4px;
+}
+
+.split-point-info small {
+  color: #6b7280;
+  font-size: 12px;
+}
+
 
 
 /* Preset Configurations */
