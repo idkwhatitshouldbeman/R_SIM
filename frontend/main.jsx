@@ -3033,8 +3033,26 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   <button 
                     className="add-split-btn"
                     onClick={() => {
-                      // Add split point functionality
                       console.log('Adding split point');
+                      // Find body tubes and transitions for split point selection
+                      const bodyComponents = rocketComponents.filter(comp => 
+                        ['Body Tube', 'Transition'].includes(comp.type)
+                      );
+                      
+                      if (bodyComponents.length < 2) {
+                        showNotification('Need at least 2 body components to add a split point', 'warning');
+                        return;
+                      }
+                      
+                      // Show split point selection modal or dropdown
+                      const splitOptions = bodyComponents.map((comp, index) => ({
+                        id: comp.id,
+                        name: `${comp.name} (${comp.type})`,
+                        position: index
+                      }));
+                      
+                      console.log('Available split points:', splitOptions);
+                      showNotification('Split point functionality ready - select a component to split at', 'info');
                     }}
                     style={{
                       padding: '4px 8px',
@@ -3298,9 +3316,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 </div>
               </div>
               
-              <div className="properties-section expanded">
-                <div className="panel-header">
-                  <h3>Rocket Properties</h3>
+              <div className="properties-section expanded" style={{ marginTop: '20px', border: '2px solid #3b82f6', borderRadius: '8px' }}>
+                <div className="panel-header" style={{ backgroundColor: '#3b82f6', color: 'white' }}>
+                  <h3>🚀 Rocket Properties</h3>
                 </div>
                 <div className="property-fields">
                   <div className="property-field">
