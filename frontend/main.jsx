@@ -3029,9 +3029,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
             <div className="left-panel-container">
               {/* Top Box - Rocket Structure */}
               <div className="structure-box" style={{
-                height: '60vh',
-                minHeight: '480px',
-                maxHeight: '600px',
+                height: '50vh',
+                minHeight: '400px',
+                maxHeight: '500px',
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '12px',
@@ -3343,9 +3343,9 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
               
               {/* Bottom Box - Rocket Properties */}
               <div className="properties-box" style={{
-                height: '40vh',
-                minHeight: '320px',
-                maxHeight: '400px',
+                height: '50vh',
+                minHeight: '400px',
+                maxHeight: '500px',
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '12px',
