@@ -3100,15 +3100,36 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                         <div className="cg-reference-toggle">
                           <label className="toggle-label">
                             <input 
-                              type="checkbox" 
-                              checked={cgFromNose}
-                              onChange={(e) => setCgFromNose(e.target.checked)}
+                              type="radio" 
+                              name="cgReference" 
+                              value="bottom" 
+                              checked={cgReference === 'bottom'}
+                              onChange={(e) => setCgReference(e.target.value)}
                             />
-                            From nose
+                            <span>From Bottom</span>
+                          </label>
+                          <label className="toggle-label">
+                            <input 
+                              type="radio" 
+                              name="cgReference" 
+                              value="top" 
+                              checked={cgReference === 'top'}
+                              onChange={(e) => setCgReference(e.target.value)}
+                            />
+                            <span>From Top</span>
                           </label>
                         </div>
                       </div>
                     </div>
+                    
+                    <div className="property-field">
+                      <label>Rocket Length (cm):</label>
+                      <div className="calculated-value">
+                        {calculateRocketLength().toFixed(1)}
+                      </div>
+                      <small>Calculated from components</small>
+                    </div>
+                    
                   </div>
                 </div>
                 
