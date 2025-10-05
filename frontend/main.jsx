@@ -3025,11 +3025,31 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
         
         {activeTab === 'builder' && (
           <div key="builder" className={`rocket-builder-layout tab-content slide-in-${tabDirection}`}>
-            {/* Left Panel - Rocket Structure & Properties */}
-            <div className="left-panel">
-              <div className="structure-section">
-                <div className="panel-header">
-                  <h3>Rocket Structure</h3>
+            {/* Left Panel - Split into two separate boxes */}
+            <div className="left-panel-container">
+              {/* Top Box - Rocket Structure */}
+              <div className="structure-box" style={{
+                height: '60vh',
+                minHeight: '480px',
+                maxHeight: '600px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                marginBottom: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}>
+                <div className="panel-header" style={{ 
+                  padding: '15px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  borderBottom: '1px solid #e5e7eb',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}>
+                  <h3 style={{ margin: 0, color: '#374151', fontSize: '16px', fontWeight: '600' }}>Rocket Structure</h3>
                   <button 
                     className="add-split-btn"
                     onClick={() => {
@@ -3068,7 +3088,11 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   </button>
                 </div>
                 
-                <div className="component-tree" key={rocketComponents.map(c => `${c.id}-${c.attachedToComponent}`).join('-')}>
+                <div className="component-tree" style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '10px'
+                }} key={rocketComponents.map(c => `${c.id}-${c.attachedToComponent}`).join('-')}>
                   <div className="tree-item">
                     <span className="tree-label">Rocket</span>
                   </div>
@@ -3317,12 +3341,35 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 </div>
               </div>
               
-              {/* Rocket Properties Panel - At bottom but not cut off */}
-              <div className="properties-section expanded" style={{ marginTop: '10px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.95)', minHeight: '200px' }}>
-                <div className="panel-header" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#374151' }}>
-                  <h3>🚀 Rocket Properties</h3>
+              {/* Bottom Box - Rocket Properties */}
+              <div className="properties-box" style={{
+                height: '40vh',
+                minHeight: '320px',
+                maxHeight: '400px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}>
+                <div className="panel-header" style={{ 
+                  padding: '15px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  borderBottom: '1px solid #e5e7eb',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}>
+                  <h3 style={{ margin: 0, color: '#374151', fontSize: '16px', fontWeight: '600' }}>🚀 Rocket Properties</h3>
                 </div>
-                <div className="property-fields">
+                
+                <div className="property-fields" style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '15px'
+                }}>
                   <div className="property-field">
                     <label>Total Mass (g):</label>
                     <input 
