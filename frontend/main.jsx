@@ -3316,8 +3316,8 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                 </div>
               </div>
               
-              <div className="properties-section expanded" style={{ marginTop: '20px', border: '2px solid #3b82f6', borderRadius: '8px' }}>
-                <div className="panel-header" style={{ backgroundColor: '#3b82f6', color: 'white' }}>
+              <div className="properties-section expanded" style={{ marginTop: '5px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
+                <div className="panel-header" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#374151' }}>
                   <h3>🚀 Rocket Properties</h3>
                 </div>
                 <div className="property-fields">
