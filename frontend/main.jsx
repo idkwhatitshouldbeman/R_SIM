@@ -3068,71 +3068,6 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                   </button>
                 </div>
                 
-                {/* Rocket Properties Panel - Moved up for better visibility */}
-                <div className="properties-section expanded" style={{ marginTop: '10px', marginBottom: '10px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
-                  <div className="panel-header" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#374151' }}>
-                    <h3>🚀 Rocket Properties</h3>
-                  </div>
-                  <div className="property-fields">
-                    <div className="property-field">
-                      <label>Total Mass (g):</label>
-                      <input 
-                        type="number" 
-                        value={rocketWeight}
-                        onChange={(e) => setRocketWeight(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                        placeholder="Enter mass"
-                        min="0"
-                        step="0.1"
-                      />
-                    </div>
-                    
-                    <div className="property-field">
-                      <label>Center of Gravity (cm):</label>
-                      <div className="cg-input-group">
-                        <input 
-                          type="number" 
-                          value={rocketCG}
-                          onChange={(e) => setRocketCG(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                          placeholder="Enter CG"
-                          min="0"
-                          step="0.1"
-                        />
-                        <div className="cg-reference-toggle">
-                          <label className="toggle-label">
-                            <input 
-                              type="radio" 
-                              name="cgReference" 
-                              value="bottom" 
-                              checked={cgReference === 'bottom'}
-                              onChange={(e) => setCgReference(e.target.value)}
-                            />
-                            <span>From Bottom</span>
-                          </label>
-                          <label className="toggle-label">
-                            <input 
-                              type="radio" 
-                              name="cgReference" 
-                              value="top" 
-                              checked={cgReference === 'top'}
-                              onChange={(e) => setCgReference(e.target.value)}
-                            />
-                            <span>From Top</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="property-field">
-                      <label>Rocket Length (cm):</label>
-                      <div className="calculated-value">
-                        {calculateRocketLength().toFixed(1)}
-                      </div>
-                      <small>Calculated from components</small>
-                    </div>
-                    
-                  </div>
-                </div>
-                
                 <div className="component-tree" key={rocketComponents.map(c => `${c.id}-${c.attachedToComponent}`).join('-')}>
                   <div className="tree-item">
                     <span className="tree-label">Rocket</span>
@@ -3378,6 +3313,71 @@ function calculateFinDeflections(cfdData, targetTrajectory) {
                       )}
                     </div>
                   ))}
+                  
+                </div>
+              </div>
+              
+              {/* Rocket Properties Panel - At bottom but not cut off */}
+              <div className="properties-section expanded" style={{ marginTop: '10px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.95)', minHeight: '200px' }}>
+                <div className="panel-header" style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#374151' }}>
+                  <h3>🚀 Rocket Properties</h3>
+                </div>
+                <div className="property-fields">
+                  <div className="property-field">
+                    <label>Total Mass (g):</label>
+                    <input 
+                      type="number" 
+                      value={rocketWeight}
+                      onChange={(e) => setRocketWeight(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                      placeholder="Enter mass"
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  
+                  <div className="property-field">
+                    <label>Center of Gravity (cm):</label>
+                    <div className="cg-input-group">
+                      <input 
+                        type="number" 
+                        value={rocketCG}
+                        onChange={(e) => setRocketCG(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                        placeholder="Enter CG"
+                        min="0"
+                        step="0.1"
+                      />
+                      <div className="cg-reference-toggle">
+                        <label className="toggle-label">
+                          <input 
+                            type="radio" 
+                            name="cgReference" 
+                            value="bottom" 
+                            checked={cgReference === 'bottom'}
+                            onChange={(e) => setCgReference(e.target.value)}
+                          />
+                          <span>From Bottom</span>
+                        </label>
+                        <label className="toggle-label">
+                          <input 
+                            type="radio" 
+                            name="cgReference" 
+                            value="top" 
+                            checked={cgReference === 'top'}
+                            onChange={(e) => setCgReference(e.target.value)}
+                          />
+                          <span>From Top</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="property-field">
+                    <label>Rocket Length (cm):</label>
+                    <div className="calculated-value">
+                      {calculateRocketLength().toFixed(1)}
+                    </div>
+                    <small>Calculated from components</small>
+                  </div>
                   
                 </div>
               </div>
